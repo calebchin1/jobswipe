@@ -1651,4 +1651,140 @@ textarea {
   padding: 5px;
 }
 
-.live-auth-link{font-size:10px;color:#617d4b;white-space:nowrap;text-underline-offset:3px}@media(max-width:700px){.topbar-actions{gap:8px}.live-auth-link{font-size:8px}}
+.live-auth-link {
+  font-size: 10px;
+  color: #617d4b;
+  white-space: nowrap;
+  text-underline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .topbar-actions {
+    gap: 8px;
+  }
+  .live-auth-link {
+    font-size: 8px;
+  }
+}
+
+/* Phone layer. Desktop styles above are tuned for pointer use; this block sets
+   touch floors (44px targets, 16px form fields so iOS does not zoom, 11px text).
+   !important is limited to those floors so later component rules cannot undercut them. */
+@media (max-width: 700px) {
+  .button,
+  .reset-demo,
+  .live-auth-link,
+  .filter-label {
+    min-height: 44px !important;
+  }
+  .button:not(.new-job) {
+    font-size: 13px !important;
+  }
+  .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .nav-item {
+    min-height: 52px;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 2px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .brand,
+  .skip-link {
+    min-height: 44px;
+  }
+  .new-job {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+  }
+  .undo-button {
+    width: 48px;
+  }
+  .topbar {
+    height: auto;
+    min-height: 52px;
+    padding: 4px 16px;
+  }
+  .topbar-actions {
+    flex: 1;
+    justify-content: space-between;
+  }
+  .reset-demo,
+  .live-auth-link {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+  }
+  .filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-label input {
+    width: 20px;
+    height: 20px;
+  }
+  .breadcrumb,
+  .eyebrow,
+  .small-label,
+  .how-card .small-label,
+  .how-footer,
+  .demo-badge,
+  .demo-notice,
+  .applied-badge,
+  .job-strip-title p,
+  .page-footer > span > span,
+  .page-footer > span:last-child,
+  .pipeline-column > h3,
+  .pipeline-card .privacy-label,
+  .privacy-label,
+  .privacy-footnote,
+  .pipeline-next,
+  .mini-heading,
+  .tag,
+  .skill-tags > span,
+  .stat-row,
+  .candidate-meta,
+  .rating-options > span,
+  .scorecard legend > span,
+  .revealed-identity small,
+  .section-bar h2 > span,
+  .withdraw-demo,
+  .page-heading p,
+  .filter-label {
+    font-size: 11px !important;
+  }
+}
+@media (max-width: 560px) {
+  .breadcrumb {
+    display: none;
+  }
+  .page-footer {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .page-footer > span > span {
+    display: block;
+    margin-left: 0;
+  }
+  .insights {
+    grid-template-columns: 1fr;
+  }
+}
+@media (hover: none) {
+  .keyboard-hint {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  :is(input, select, textarea):not([type='checkbox']):not([type='radio']) {
+    font-size: 16px !important;
+    min-width: 0;
+    max-width: 100%;
+  }
+}

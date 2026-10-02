@@ -1144,3 +1144,61 @@
     width: 100%;
   }
 }
+
+/* Phone layer for the connected workspace; see the matching block in globals.css. */
+@media (max-width: 700px) {
+  .live-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    overflow: visible;
+    border-bottom: 0;
+  }
+  .live-tabs button {
+    min-height: 44px;
+    font-size: 13px !important;
+    white-space: normal;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px;
+  }
+  .live-tabs button[aria-selected='true'] {
+    border-color: #3b704c;
+    background: #eef2e5;
+  }
+  .live-header .button {
+    white-space: nowrap;
+  }
+  .live-slot-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .live-slot-form label {
+    min-width: 0;
+  }
+  .live-forgot-link,
+  .live-text-button,
+  .live-header-right > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 13px !important;
+  }
+  .live-form small,
+  .live-form > small,
+  .live-small-note,
+  .live-badge,
+  .live-auth-footnote,
+  .live-auth-principles span,
+  .live-job-button small,
+  .live-job-button .tag,
+  .live-slot-list small,
+  .live-slot-list .tag,
+  .live-schedule-heading h3 > span,
+  .live-audio-status small,
+  .live-audio-heading .tag,
+  .live-table th,
+  .live-table td,
+  .live-table td small {
+    font-size: 11px !important;
+  }
+}
