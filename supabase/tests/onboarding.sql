@@ -1,0 +1,118 @@
+-- Run after the 001 security/race scenarios. IDs 10/11/12 are new signups.
+set role anon;
+select test.denied('select app.ensure_account(''candidate'')','anonymous provisioning');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub='';
+select test.denied('select app.get_account_context()','missing session context');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000010';
+select test.assert(app.get_account_context()->'roles'='[]'::jsonb,'unprovisioned safe context');
+select test.invalid('select app.ensure_account(''admin'')','no admin provisioning');
+select test.assert(app.ensure_account('candidate')->'roles'='["candidate"]'::jsonb,'candidate provisioning');
+select test.assert(app.ensure_account('candidate')->'roles'='["candidate"]'::jsonb,'idempotent provisioning');
+select test.assert(app.get_candidate_profile()->>'reviewStatus'='not_started','new profile starts unreviewed');
+select test.assert(jsonb_array_length(app.list_open_jobs())>=2,'unreviewed signup can browse safe public jobs');
+select test.assert(not exists(select 1 from jsonb_array_elements(app.list_open_jobs()) j where (j->>'canApply')::boolean),'unreviewed cannot apply to any job');
+select test.denied('select app.apply_to_job(''30000000-0000-0000-0000-000000000002'')','no fabricated eligibility');
+select test.invalid('select app.save_candidate_profile(''{"headline":"Person","educationLevel":"School","field":"Math","studyStatus":"Studying","bullets":[],"skills":[],"approved":true}'')','profile cannot selfapprove');
+select test.assert(app.save_candidate_profile('{"headline":"Alex secret@example.invalid","educationLevel":"Bachelor","field":"Math","studyStatus":"Studying","bullets":["Named club member"],"skills":["Organization"]}',true)->>'reviewStatus'='pending_review','raw profile goes to review');
+select test.assert(app.get_candidate_profile()->'published'='null'::jsonb,'submission is not publication');
+select test.assert(app.set_candidate_visibility(false)->>'reviewStatus'='pending_review','visibility does not approve or resubmit');
+select test.denied('select * from private.candidate_profile_drafts','no direct draft table access');
+select test.denied('select app.create_employer(''Fictional New Cafe'',''https://new.example.invalid'')','candidate needs employer capability');
+reset role;
+update app.accounts set status='suspended' where id='00000000-0000-0000-0000-000000000010';
+set role authenticated;
+select test.denied('select app.ensure_account(''employer'')','ensure cannot reactivate suspended account');
+select test.denied('select app.get_account_context()','suspended context denied');
+reset role;
+select test.assert((select status='suspended' from app.accounts where id='00000000-0000-0000-0000-000000000010'),'suspended state preserved');
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select app.ensure_account('employer');
+select app.create_employer('Fictional New Cafe','https://new.example.invalid') as new_employer \gset
+select test.assert(app.create_employer('Fictional New Cafe','https://new.example.invalid')=:'new_employer','company creation retry stable');
+select test.assert(app.get_account_context()->'employers'->0->>'verificationStatus'='pending','new employer not verified');
+select test.denied('update app.employers set verified_at=now()','employer cannot selfverify');
+select test.invalid('select app.create_employer(''Fictional Cafe'',''javascript:alert(1)'')','unsafe website scheme');
+select app.save_job_draft(:'new_employer',null,'{"title":"Draft cafe assistant"}') as new_job \gset
+select test.assert(app.list_employer_jobs(:'new_employer')->0->>'status'='draft','unverified can save draft');
+select test.denied(format('select app.publish_job(%L)',:'new_job'),'unverified cannot publish');
+select test.denied(format('select * from app.list_candidate_cards(%L)',:'new_job'),'unverified cannot browse candidates');
+select test.denied(format('select app.list_job_applications(%L)',:'new_job'),'unverified cannot browse applications');
+select test.denied('select app.list_my_applications()','employer cannot list candidate applications');
+select test.denied('select app.get_candidate_profile()','employer cannot get candidate draft');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select test.denied(format('select app.list_employer_jobs(%L)',:'new_employer'),'other employer cannot read drafts');
+select test.denied(format('select app.save_job_draft(''10000000-0000-0000-0000-000000000002'',%L,''{"title":"Changed"}'')',:'new_job'),'cross-company job edit denied');
+reset role;
+-- Trusted synthetic verification, not a user-facing bypass.
+update app.employers set verified_at=now() where id=:'new_employer';
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select test.invalid(format('select app.publish_job(%L)',:'new_job'),'incomplete posting fails publication');
+select '{"title":"Campus cafe assistant","description":"Help customers and keep the service area organized.","payMinMinor":1900,"payMaxMinor":2200,"payPeriod":"hour","currency":"CAD","location":"Waterloo","hoursPerWeek":20,"schedule":["Mon","Wed"],"skills":["Customer service"],"mustHaves":["Able to work posted shifts"],"niceToHaves":[],"questions":["Describe helping a customer.","How do you organize a busy shift?","What would you do if you need help?"],"isVacancy":true,"usesAiScreening":false,"workplaceType":"restaurant_service","jobType":"Part-time"}'::jsonb as complete_draft \gset
+select test.invalid(format('select app.save_job_draft(%L,%L,%L)',:'new_employer',:'new_job',(:'complete_draft'::jsonb||'{"minimumAge":18}')::text),'arbitrary age filter blocked');
+select app.save_job_draft(:'new_employer',:'new_job',:'complete_draft'::jsonb||'{"payMaxMinor":99000}');
+select test.invalid(format('select app.publish_job(%L)',:'new_job'),'annualized range width');
+select app.save_job_draft(:'new_employer',:'new_job',:'complete_draft'::jsonb||'{"mustHaves":["Canadian work experience"]}');
+select test.invalid(format('select app.publish_job(%L)',:'new_job'),'Canadian experience prohibited');
+select app.save_job_draft(:'new_employer',:'new_job',:'complete_draft'::jsonb);
+select app.publish_job(:'new_job') as first_version \gset
+select test.assert(app.publish_job(:'new_job')=:'first_version','publication retry same version');
+select test.assert(app.list_employer_jobs(:'new_employer')->0->>'hasUnpublishedChanges'='false','published draft clean');
+select test.assert(app.list_employer_jobs(:'new_employer')->0->'details'->>'minimumAge'='14','workplace age derived server-side');
+select app.save_job_draft(:'new_employer',:'new_job',:'complete_draft'::jsonb||'{"title":"Unpublished changed title"}');
+select test.assert(app.list_employer_jobs(:'new_employer')->0->>'hasUnpublishedChanges'='true','editor sees pending draft change');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000012';
+select app.ensure_account('candidate');
+select test.assert((select j->'details'->>'title'='Campus cafe assistant' from jsonb_array_elements(app.list_open_jobs(100)) j where j->>'id'=:'new_job'),'public still sees published snapshot');
+select test.assert((select j->>'hasUnpublishedChanges'='false' from jsonb_array_elements(app.list_open_jobs(100)) j where j->>'id'=:'new_job'),'candidate cannot infer employer draft state');
+select test.invalid('select app.list_open_jobs(1000)','page bounds enforced');
+select test.assert(jsonb_array_length(app.list_open_jobs(1))=1,'pagination limit');
+select test.assert((select bool_and((j->>'id')::uuid > '30000000-0000-0000-0000-000000000001'::uuid) from jsonb_array_elements(app.list_open_jobs(100,'30000000-0000-0000-0000-000000000001')) j),'cursor ordering');
+-- Candidate A already approved from fixture. Capture a visible ref, then hide.
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select card_id as hidden_card from app.list_candidate_cards(:'new_job') where headline='Customer service and careful organization' \gset
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select app.set_candidate_visibility(false);
+select test.assert((select (j->>'canApply')::boolean from jsonb_array_elements(app.list_open_jobs(100)) j where j->>'id'=:'new_job'),'hidden approved candidate can apply');
+select app.save_candidate_profile('{"headline":"Unsafe new draft secret@example.invalid","educationLevel":"Bachelor","field":"Math","studyStatus":"Studying","bullets":[],"skills":["Organization"]}');
+select test.assert(app.get_candidate_profile()->'published'->>'headline'='Customer service and careful organization','editing draft preserves approved version');
+select test.assert(app.get_candidate_profile()->>'discoverable'='false','omitted visibility preserves hidden setting');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select test.assert(not exists(select 1 from app.list_candidate_cards(:'new_job') where card_id=:'hidden_card'),'hidden nonapplicant absent from discovery');
+select test.denied(format('select app.express_employer_interest(%L,%L)',:'new_job',:'hidden_card'),'stale ref cannot invite hidden nonapplicant');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select app.apply_to_job(:'new_job') as hidden_application \gset
+select test.assert((select count(*)=1 from jsonb_array_elements(app.list_my_applications()) a where a->>'id'=:'hidden_application'),'candidate own application persisted');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
+select test.assert(not exists(select 1 from jsonb_array_elements(app.list_my_applications()) a where a->>'id'=:'hidden_application'),'other candidate cannot list application');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select test.denied(format('select app.list_job_applications(%L)',:'new_job'),'unrelated employer cannot list applications');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select test.assert((select headline='Customer service and careful organization' from app.list_candidate_cards(:'new_job') where card_id=:'hidden_card'),'deliberate hidden application visible with approved profile only');
+select test.assert(app.list_job_applications(:'new_job')->0->>'headline'='Customer service and careful organization','pipeline excludes unreviewed draft');
+select test.assert(not (app.list_job_applications(:'new_job')->0 ? 'candidateId') and not (app.list_job_applications(:'new_job')->0 ? 'email'),'pipeline no global identity');
+select app.express_employer_interest(:'new_job',:'hidden_card');
+select test.assert(app.list_job_applications(:'new_job')->0->>'stage'='Matched','pipeline derives match');
+select app.publish_job(:'new_job') as second_version \gset
+select test.assert(:'second_version'<>:'first_version','editing creates new immutable version');
+select test.assert(app.list_job_applications(:'new_job')->0->>'jobTitle'='Campus cafe assistant','application keeps applied posting title');
+reset role;
+select test.assert((select applied_job_version_id=:'first_version' from app.applications where id=:'hidden_application'),'applied snapshot retained');
+select test.assert((select count(*)=2 from app.job_versions where job_id=:'new_job'),'two immutable publication versions');
+select test.assert((select count(*)=2 from ops.outbox_events where aggregate_id=:'new_job' and event_type='job.published'),'publish retries do not duplicate outbox');
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';
+select app.withdraw_application(:'hidden_application');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000011';
+select test.assert(app.list_job_applications(:'new_job')->0->>'handle'='Withdrawn','withdrawn pipeline is anonymous');
+select test.assert(app.list_job_applications(:'new_job')->0->'headline'='null'::jsonb and app.list_job_applications(:'new_job')->0->'cardId'='null'::jsonb,'withdrawn row no new card details');
+reset role;
+update app.employer_members set revoked_at=now() where employer_id=:'new_employer' and account_id='00000000-0000-0000-0000-000000000011';
+set role authenticated;
+select test.denied(format('select app.list_employer_jobs(%L)',:'new_employer'),'removed seat cannot read drafts');
+select test.denied(format('select app.publish_job(%L)',:'new_job'),'removed seat cannot publish');
+reset role;
+select 'onboarding, immutable publishing and private queries passed' as result;

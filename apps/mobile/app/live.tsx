@@ -1,0 +1,341 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useFocusEffect } from 'expo-router';
+import { Text, View } from 'react-native';
+import {
+  AccountContextSchema,
+  CandidateProfileSchema,
+  LiveApplicationSchema,
+  LiveJobSchema,
+  type AccountContext,
+  type CandidateProfile,
+  type LiveApplication,
+  type LiveJob,
+} from '@swipe/contracts';
+import { liveRequest, useLiveAuth } from '../src/live/auth';
+import { LiveScreen, Status } from '../src/live/ui';
+import { Button, Empty, Heading, s, Tag } from '../src/ui';
+export default function Live() {
+  const auth = useLiveAuth();
+  const userId = auth.sessionKey;
+  const identity = useRef(userId);
+  identity.current = userId;
+  const [data, setData] = useState<{
+    user: string;
+    account: AccountContext;
+    profile: CandidateProfile;
+    jobs: LiveJob[];
+    applications: LiveApplication[];
+    nextCursor: string | null;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const sequence = useRef(0);
+  useEffect(() => {
+    setData(null);
+    setError('');
+    setNotice('');
+    setConfirm(null);
+    sequence.current++;
+  }, [userId]);
+  const refresh = useCallback(async () => {
+    if (!userId) return;
+    const request = ++sequence.current;
+    setBusy(true);
+    setError('');
+    try {
+      const [context, profile, jobs, applications] = await Promise.all([
+        liveRequest<{ account: unknown }>('/me'),
+        liveRequest<{ profile: unknown }>('/candidate/profile'),
+        liveRequest<{ jobs: unknown[]; nextCursor: string | null }>('/candidate/jobs?limit=20'),
+        liveRequest<{ applications: unknown[] }>('/candidate/applications'),
+      ]);
+      const next = {
+        user: userId,
+        account: AccountContextSchema.parse(context.account),
+        profile: CandidateProfileSchema.parse(profile.profile),
+        jobs: jobs.jobs.map((job) => LiveJobSchema.parse(job)),
+        applications: applications.applications.map((application) =>
+          LiveApplicationSchema.parse(application),
+        ),
+        nextCursor: jobs.nextCursor,
+      };
+      if (identity.current === userId && request === sequence.current) setData(next);
+    } catch (failure) {
+      if (identity.current === userId && request === sequence.current) {
+        setData(null);
+        setError(failure instanceof Error ? failure.message : 'Could not load your workspace.');
+      }
+    } finally {
+      if (identity.current === userId && request === sequence.current) setBusy(false);
+    }
+  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      setConfirm(null);
+      setNotice('');
+      void refresh();
+      return () => {
+        sequence.current++;
+      };
+    }, [refresh]),
+  );
+  async function mutate(path: string, message: string) {
+    const actor = userId;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await liveRequest(path, 'POST', {});
+      if (identity.current === actor) {
+        setConfirm(null);
+        setNotice(message);
+        await refresh();
+      }
+    } catch (failure) {
+      if (identity.current === actor)
+        setError(failure instanceof Error ? failure.message : 'Request failed.');
+    } finally {
+      if (identity.current === actor) setBusy(false);
+    }
+  }
+  async function more() {
+    if (!data?.nextCursor) return;
+    const actor = userId;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await liveRequest<{ jobs: unknown[]; nextCursor: string | null }>(
+        `/candidate/jobs?limit=20&after=${encodeURIComponent(data.nextCursor)}`,
+      );
+      const jobs = result.jobs.map((job) => LiveJobSchema.parse(job));
+      if (identity.current === actor)
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                jobs: [
+                  ...current.jobs,
+                  ...jobs.filter((job) => !current.jobs.some((existing) => existing.id === job.id)),
+                ],
+                nextCursor: result.nextCursor,
+              }
+            : null,
+        );
+    } catch (failure) {
+      if (identity.current === actor)
+        setError(failure instanceof Error ? failure.message : 'Could not load more jobs.');
+    } finally {
+      if (identity.current === actor) setBusy(false);
+    }
+  }
+  if (!auth.ready)
+    return (
+      <LiveScreen>
+        <Status message="Restoring session…" />
+      </LiveScreen>
+    );
+  if (!auth.session)
+    return (
+      <LiveScreen>
+        <Heading eyebrow="CONNECTED WORKSPACE" title="Sign in to continue." />
+        <Link href="/account" style={s.link}>
+          Open account connection →
+        </Link>
+      </LiveScreen>
+    );
+  const current = data?.user === userId ? data : null;
+  return (
+    <LiveScreen>
+      <Heading
+        eyebrow="LIVE CANDIDATE WORKSPACE"
+        title="Your next possibility."
+        subtitle="Jobs and application statuses come from your connected server."
+      />
+      <View style={s.row}>
+        <Link href="/account" style={s.link}>
+          Account
+        </Link>
+        <Link href="/live-interviews" style={s.link}>
+          Interviews
+        </Link>
+        <Link href="/live-profile" style={s.link}>
+          Edit blind profile
+        </Link>
+      </View>
+      <Button
+        secondary
+        label={busy ? 'Loading…' : 'Refresh jobs and applications'}
+        disabled={busy}
+        onPress={() => {
+          void refresh();
+        }}
+      />
+      {!!error && <Status error message={error} />} {!!notice && <Status message={notice} />}{' '}
+      {!current && !error && <Status message="Loading your workspace…" />}
+      {current && (
+        <>
+          <View style={s.panel}>
+            <Text style={s.cardTitle}>
+              Profile: {current.profile.reviewStatus.replaceAll('_', ' ')}
+            </Text>
+            <Text style={s.body}>
+              {current.profile.reviewStatus === 'approved'
+                ? 'Your profile has been reviewed. Each job still requires server eligibility checks.'
+                : current.profile.reviewStatus === 'awaiting_approval'
+                  ? 'Review the proposed blind version in Edit blind profile. It stays unpublished until you approve it.'
+                  : 'Save your blind profile for review. Applying is unavailable until required profile and eligibility checks are complete.'}
+            </Text>
+            <Text style={s.body}>
+              Discoverability: {current.profile.discoverable ? 'enabled' : 'disabled'}. Account:{' '}
+              {current.account.status}.
+            </Text>
+          </View>
+          <Heading eyebrow="OPEN POSTINGS" title="Explore jobs." />
+          {current.jobs.length === 0 && (
+            <Empty
+              title="No available jobs yet."
+              description="Refresh later. No fictional listings are substituted here."
+            />
+          )}
+          {current.jobs.map((job) => {
+            const details = job.details;
+            const applied = current.applications.find(
+              (application) => application.jobId === job.id,
+            );
+            return (
+              <View style={s.panel} key={job.id}>
+                <Text style={s.cardTitle}>{details?.title ?? 'Posting unavailable'}</Text>
+                <Text style={s.body}>
+                  {job.company} · {details?.location}
+                </Text>
+                {details && (
+                  <>
+                    <Text style={s.label}>
+                      CAD ${(details.payMinMinor / 100).toFixed(2)}–$
+                      {(details.payMaxMinor / 100).toFixed(2)} / {details.payPeriod}
+                    </Text>
+                    <Text style={s.body}>
+                      {details.hoursPerWeek} hours/week · {details.schedule.join(', ')}
+                    </Text>
+                    <Text style={s.body}>{details.description}</Text>
+                    <View style={s.row}>
+                      {details.skills.map((skill) => (
+                        <Tag key={skill}>{skill}</Tag>
+                      ))}
+                    </View>
+                    <Text style={s.label}>Requirements</Text>
+                    {details.mustHaves.map((requirement) => (
+                      <Text key={requirement} style={s.body}>
+                        • {requirement}
+                      </Text>
+                    ))}
+                    <Text style={s.body}>
+                      Existing vacancy: {details.isVacancy ? 'yes' : 'no'} · AI screening:{' '}
+                      {details.usesAiScreening ? 'yes' : 'no'}
+                    </Text>
+                  </>
+                )}
+                <Button
+                  disabled={
+                    busy || !job.canApply || !!applied || current.account.status !== 'active'
+                  }
+                  label={
+                    applied
+                      ? applied.stage
+                      : job.canApply
+                        ? 'Apply to this job'
+                        : 'Application checks pending'
+                  }
+                  onPress={() => {
+                    void mutate(`/jobs/${job.id}/apply`, 'Application received by the server.');
+                  }}
+                />
+                {!job.canApply && !applied && (
+                  <Text style={s.body}>
+                    Profile review or eligibility requirements are not yet satisfied for this job.
+                    Approval cannot be granted in this app.
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+          {current.nextCursor && (
+            <Button
+              secondary
+              label="Load more jobs"
+              disabled={busy}
+              onPress={() => {
+                void more();
+              }}
+            />
+          )}
+          <Heading eyebrow="YOUR APPLICATIONS" title="Keep track." />
+          {current.applications.length === 0 && (
+            <Empty
+              title="No applications yet."
+              description="Your confirmed applications will appear here after you apply."
+            />
+          )}
+          {current.applications.map((application) => (
+            <View style={s.panel} key={application.id}>
+              <Tag>{application.stage}</Tag>
+              <Text style={s.cardTitle}>{application.jobTitle}</Text>
+              <Text style={s.body}>{application.company}</Text>
+              <Text style={s.body}>
+                Applied {new Date(application.appliedAt).toLocaleDateString()}
+              </Text>
+              {application.matchedAt && (
+                <Text style={s.body}>
+                  Matched {new Date(application.matchedAt).toLocaleDateString()}. Choose an
+                  interview time when the employer offers availability.
+                </Text>
+              )}
+              {(application.stage === 'Matched' || application.stage === 'Interview booked') && (
+                <Link
+                  href={{ pathname: '/live-interviews', params: { applicationId: application.id } }}
+                  style={s.link}
+                >
+                  Manage interview →
+                </Link>
+              )}
+              {application.stage !== 'Withdrawn' &&
+                (confirm === application.id ? (
+                  <>
+                    <Text style={s.body}>
+                      Withdraw this application? Future access will stop. Copies already shared
+                      outside the platform cannot be recalled.
+                    </Text>
+                    <Button
+                      disabled={busy}
+                      label="Confirm live withdrawal"
+                      onPress={() => {
+                        void mutate(
+                          `/applications/${application.id}/withdraw`,
+                          'Application withdrawn.',
+                        );
+                      }}
+                    />
+                    <Button
+                      secondary
+                      disabled={busy}
+                      label="Keep application"
+                      onPress={() => setConfirm(null)}
+                    />
+                  </>
+                ) : (
+                  <Button
+                    secondary
+                    disabled={busy}
+                    label="Withdraw application"
+                    onPress={() => setConfirm(application.id)}
+                  />
+                ))}
+            </View>
+          ))}
+        </>
+      )}
+    </LiveScreen>
+  );
+}

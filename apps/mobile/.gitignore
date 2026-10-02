@@ -1,0 +1,6 @@
+.expo/
+dist/
+dist-native/
+dist-live/
+test-results/
+dist-connected/

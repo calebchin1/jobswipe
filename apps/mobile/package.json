@@ -1,0 +1,45 @@
+{
+  "name": "@swipe/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "node node_modules/expo/bin/cli start",
+    "android": "node node_modules/expo/bin/cli start --android",
+    "ios": "node node_modules/expo/bin/cli start --ios",
+    "web": "node node_modules/expo/bin/cli start --web",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
+    "test": "node ../../node_modules/vitest/vitest.mjs run --root ../.. --config apps/mobile/vitest.config.mts"
+  },
+  "dependencies": {
+    "expo": "57.0.25",
+    "expo-constants": "~57.0.19",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.23",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "~0.21.0",
+    "@swipe/domain": "workspace:*",
+    "@swipe/contracts": "workspace:*",
+    "react-native-worklets": "0.10.1",
+    "react-native-reanimated": "4.5.1",
+    "@supabase/supabase-js": "2.117.2",
+    "expo-secure-store": "~57.0.4",
+    "@livekit/react-native": "3.0.0",
+    "@livekit/react-native-expo-plugin": "1.0.3",
+    "@livekit/react-native-webrtc": "144.2.0",
+    "@config-plugins/react-native-webrtc": "15.0.2",
+    "livekit-client": "2.22.3",
+    "expo-dev-client": "~57.0.19"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.4",
+    "typescript": "~6.0.3",
+    "@react-native/metro-config": "0.86.3",
+    "@types/react-dom": "~19.2.0"
+  }
+}

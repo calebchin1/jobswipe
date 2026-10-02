@@ -1,0 +1,13 @@
+node_modules
+.next
+.expo
+.turbo
+dist
+dist-native
+dist-live
+coverage
+test-results
+playwright-report
+pnpm-lock.yaml
+
+dist-connected/
