@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 import { jobs, useDemo } from '../../src/demo';
 import { Button, Empty, Heading, Screen, s, Tag } from '../../src/ui';
+import { SwipeCard } from '../../src/SwipeCard';
 export default function Discover() {
   const demo = useDemo();
   const available = jobs.filter(
@@ -22,38 +23,46 @@ export default function Discover() {
       </View>
       {job ? (
         <>
-          <View style={[s.panel, { padding: 0, overflow: 'hidden' }]}>
-            <View style={{ backgroundColor: job.color, padding: 25, gap: 24 }}>
-              <View style={s.row}>
-                <Text style={{ fontSize: 42, fontWeight: '800', color: '#243F37' }}>
-                  {job.monogram}
-                </Text>
-                <Text style={[s.label, { flex: 1 }]}>{job.company}</Text>
-                <Tag>Sample posting</Tag>
+          <SwipeCard
+            key={job.id}
+            label={job.title}
+            onSwipe={(direction) =>
+              direction === 'right' ? demo.apply(job.id) : demo.pass(job.id)
+            }
+          >
+            <View style={[s.panel, { padding: 0, overflow: 'hidden' }]}>
+              <View style={{ backgroundColor: job.color, padding: 25, gap: 24 }}>
+                <View style={s.row}>
+                  <Text style={{ fontSize: 42, fontWeight: '800', color: '#243F37' }}>
+                    {job.monogram}
+                  </Text>
+                  <Text style={[s.label, { flex: 1 }]}>{job.company}</Text>
+                  <Tag>Sample posting</Tag>
+                </View>
+                <Text style={[s.title, { fontSize: 33, lineHeight: 38 }]}>{job.title}</Text>
+                <Text style={s.label}>{job.category}</Text>
               </View>
-              <Text style={[s.title, { fontSize: 33, lineHeight: 38 }]}>{job.title}</Text>
-              <Text style={s.label}>{job.category}</Text>
+              <View style={{ padding: 22, gap: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+                  <Text style={s.cardTitle}>{job.pay}</Text>
+                  <Text style={s.body}>{job.commute} min*</Text>
+                </View>
+                <Text style={s.body}>{job.hours} · In person</Text>
+                <View style={s.row}>
+                  {job.skills.map((skill) => (
+                    <Tag key={skill}>{skill}</Tag>
+                  ))}
+                </View>
+                <Link
+                  href={{ pathname: '/jobs/[jobId]', params: { jobId: job.id } }}
+                  accessibilityLabel={`Read ${job.category} job details`}
+                  style={s.link}
+                >
+                  Meet your next possibility →
+                </Link>
+              </View>
             </View>
-            <View style={{ padding: 22, gap: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-                <Text style={s.cardTitle}>{job.pay}</Text>
-                <Text style={s.body}>{job.commute} min*</Text>
-              </View>
-              <Text style={s.body}>{job.hours} · In person</Text>
-              <View style={s.row}>
-                {job.skills.map((skill) => (
-                  <Tag key={skill}>{skill}</Tag>
-                ))}
-              </View>
-              <Link
-                href={{ pathname: '/jobs/[jobId]', params: { jobId: job.id } }}
-                accessibilityLabel={`Read ${job.category} job details`}
-                style={s.link}
-              >
-                Meet your next possibility →
-              </Link>
-            </View>
-          </View>
+          </SwipeCard>
           <View style={s.row}>
             <View style={{ flex: 1 }}>
               <Button label="Pass" secondary onPress={() => demo.pass(job.id)} />
@@ -85,8 +94,8 @@ export default function Discover() {
         </Text>
       </View>
       <Text style={s.footer}>
-        *Commute times are illustrative. These buttons are the accessible alternative to future
-        swipe gestures.
+        *Commute times are illustrative. Swipe the card right to apply or left to pass; the buttons
+        do the same.
       </Text>
     </Screen>
   );

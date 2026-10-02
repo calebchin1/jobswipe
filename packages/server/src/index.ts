@@ -176,6 +176,10 @@ export const workflows = {
   apply: 'apply_to_job',
   employerInterest: 'express_employer_interest',
   withdraw: 'withdraw_application',
+  passJob: 'pass_job',
+  undoJobPass: 'undo_job_pass',
+  passCard: 'pass_candidate_card',
+  undoCardPass: 'undo_candidate_card_pass',
   candidates: 'list_candidate_cards',
   scorecard: 'submit_scorecard',
   authorize: 'authorize_reveal',
@@ -253,6 +257,10 @@ export function projectRpcResult(name: Workflow, data: unknown): unknown {
       case 'read_reveal':
         return z.array(IdentityRow).max(1).parse(data)[0] ?? null;
       case 'withdraw_application':
+      case 'pass_job':
+      case 'undo_job_pass':
+      case 'pass_candidate_card':
+      case 'undo_candidate_card_pass':
         return null;
       case 'express_employer_interest':
         return z.uuid().nullable().parse(data);

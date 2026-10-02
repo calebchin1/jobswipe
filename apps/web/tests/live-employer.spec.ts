@@ -211,7 +211,8 @@ test('actual interest response updates pipeline without any simulated reveal con
   await page.goto('/workspace');
   await expect(page.getByRole('heading', { name: card.handle })).toBeVisible();
   await page.getByRole('button', { name: 'I’m interested', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Mutual match ✓' })).toBeDisabled();
+  await expect(page.getByText(`You matched with ${card.handle}.`)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'You’re all caught up.' })).toBeVisible();
   await page.getByRole('tab', { name: 'Applications', exact: true }).click();
   await expect(page.getByRole('cell', { name: /Matched/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /simulate|reveal/i })).toHaveCount(0);

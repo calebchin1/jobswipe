@@ -19,6 +19,7 @@ import {
 } from '@swipe/contracts';
 import { LiveApiError, liveApi } from '../lib/live-api';
 import { LiveInterviewScheduling } from './live-interview-scheduling';
+import { SwipeCard } from './swipe-card';
 
 type WorkspaceTab = 'candidates' | 'applications' | 'schedule' | 'details';
 function field(value: unknown, key: string): unknown {
@@ -78,7 +79,7 @@ export function LiveEmployerWorkspace() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState('');
   const [activityRevision, setActivityRevision] = useState(0);
-  const [interestSaved, setInterestSaved] = useState<string[]>([]);
+  const [passed, setPassed] = useState<LiveCandidateCard[]>([]);
   const [tab, setTab] = useState<WorkspaceTab>('candidates');
   const [editing, setEditing] = useState<'new' | LiveJob | null>(null);
   const [busy, setBusy] = useState('');
@@ -140,7 +141,7 @@ export function LiveEmployerWorkspace() {
     setCandidates([]);
     setApplications([]);
     setEditing(null);
-    setInterestSaved([]);
+    setPassed([]);
     if (!employer || employer.verificationStatus === 'suspended' || account?.status !== 'active') {
       setJobsLoading(false);
       return;
@@ -172,7 +173,7 @@ export function LiveEmployerWorkspace() {
     setCandidates([]);
     setApplications([]);
     setActivityError('');
-    setInterestSaved([]);
+    setPassed([]);
     if (!selectedJob || !canRecruit) {
       setActivityLoading(false);
       return;
@@ -252,7 +253,7 @@ export function LiveEmployerWorkspace() {
         body: { cardId: card.cardRef },
         parse: (value) => UuidSchema.nullable().parse(field(value, 'applicationId')),
       });
-      setInterestSaved((previous) => [...previous, card.cardRef]);
+      setCandidates((previous) => previous.filter((item) => item.cardRef !== card.cardRef));
       const nextApplications = await liveApi(`/jobs/${selectedJob.id}/applications`, {
         parse: parseApplications,
       });
@@ -265,6 +266,45 @@ export function LiveEmployerWorkspace() {
           ? `You matched with ${card.handle}. They’re now in your application pipeline.`
           : `Your interest in ${card.handle} is saved. A match requires interest from both sides.`,
       );
+    } catch (failure) {
+      fail(failure);
+    } finally {
+      setBusy('');
+    }
+  }
+  async function pass(card: LiveCandidateCard) {
+    if (!selectedJob || !canRecruit || busy) return;
+    setBusy(card.cardRef);
+    setActionError('');
+    try {
+      await liveApi(`/jobs/${selectedJob.id}/candidates/${card.cardRef}/pass`, {
+        method: 'POST',
+        body: {},
+        parse: () => null,
+      });
+      setCandidates((previous) => previous.filter((item) => item.cardRef !== card.cardRef));
+      setPassed((previous) => [card, ...previous]);
+      setNotice(`You passed on ${card.handle}. They aren’t notified.`);
+    } catch (failure) {
+      fail(failure);
+    } finally {
+      setBusy('');
+    }
+  }
+  async function undoPass() {
+    const [card, ...rest] = passed;
+    if (!card || !selectedJob || !canRecruit || busy) return;
+    setBusy('undo');
+    setActionError('');
+    try {
+      await liveApi(`/jobs/${selectedJob.id}/candidates/${card.cardRef}/pass/undo`, {
+        method: 'POST',
+        body: {},
+        parse: () => null,
+      });
+      setPassed(rest);
+      setCandidates((previous) => [card, ...previous]);
+      setNotice(`${card.handle} is back in your deck.`);
     } catch (failure) {
       fail(failure);
     } finally {
@@ -710,76 +750,77 @@ export function LiveEmployerWorkspace() {
                               <span className="live-symbol" aria-hidden="true">
                                 ✳
                               </span>
-                              <h3>Your shortlist is taking shape.</h3>
+                              <h3>
+                                {passed.length || applications.length
+                                  ? 'You’re all caught up.'
+                                  : 'Your shortlist is taking shape.'}
+                              </h3>
                               <p>
-                                No approved, eligible candidate profiles are available for this role
-                                yet. Check back as candidates join.
+                                {passed.length || applications.length
+                                  ? 'You’ve reviewed every available candidate for this role. Matches are in Applications.'
+                                  : 'No approved, eligible candidate profiles are available for this role yet. Check back as candidates join.'}
                               </p>
-                              <button
-                                className="button secondary"
-                                onClick={() => setActivityRevision((r) => r + 1)}
-                              >
-                                Refresh shortlist
-                              </button>
+                              <div className="live-failure-actions">
+                                <button
+                                  className="button secondary"
+                                  onClick={() => setActivityRevision((r) => r + 1)}
+                                >
+                                  Refresh shortlist
+                                </button>
+                                {!!passed.length && (
+                                  <button
+                                    className="button secondary"
+                                    disabled={!!busy}
+                                    onClick={undoPass}
+                                  >
+                                    Undo last pass
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ) : (
-                            <div className="live-candidate-list">
-                              {candidates.map((card) => {
-                                const application = applications.find(
-                                  (item) => item.cardId === card.cardRef,
-                                );
-                                const saved =
-                                  interestSaved.includes(card.cardRef) ||
-                                  (application && application.stage !== 'Applied');
-                                return (
-                                  <article className="live-candidate-card" key={card.cardRef}>
-                                    <div className="live-candidate-top">
-                                      <h3>{card.handle}</h3>
-                                      <span className="tag">
-                                        {card.applied
-                                          ? 'Applied to your role'
-                                          : 'Open to opportunities'}
-                                      </span>
-                                    </div>
-                                    <h4>{card.headline}</h4>
-                                    <p>
-                                      {card.education.level} · {card.education.field} ·{' '}
-                                      {card.education.status}
-                                    </p>
-                                    <ul className="impact-list">
-                                      {card.bullets.map((bullet, index) => (
-                                        <li key={index}>
-                                          <span className="bullet-star" aria-hidden="true">
-                                            ✦
-                                          </span>
-                                          {bullet}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                    <div className="skill-tags">
-                                      {card.skills.map((skill) => (
-                                        <span key={skill}>{skill}</span>
-                                      ))}
-                                    </div>
-                                    <div className="live-candidate-footer">
-                                      <span>Identity protected · approved profile</span>
-                                      <button
-                                        className="button primary"
-                                        disabled={!!busy || !!saved}
-                                        onClick={() => interest(card)}
-                                      >
-                                        {busy === card.cardRef
-                                          ? 'Saving interest…'
-                                          : application?.stage === 'Matched'
-                                            ? 'Mutual match ✓'
-                                            : saved
-                                              ? 'Interest saved ✓'
-                                              : 'I’m interested'}
-                                      </button>
-                                    </div>
-                                  </article>
-                                );
-                              })}
+                            <div className="live-deck">
+                              <p className="swipe-progress" aria-live="polite">
+                                {candidates.length}{' '}
+                                {candidates.length === 1 ? 'candidate' : 'candidates'} left · swipe
+                                right if you’re interested, left to pass
+                              </p>
+                              <SwipeCard
+                                key={candidates[0].cardRef}
+                                label={candidates[0].handle}
+                                disabled={!!busy}
+                                onSwipe={(direction) =>
+                                  direction === 'right'
+                                    ? interest(candidates[0])
+                                    : pass(candidates[0])
+                                }
+                              >
+                                <CandidateCardBody card={candidates[0]} />
+                              </SwipeCard>
+                              <div className="swipe-actions">
+                                <button
+                                  className="button secondary swipe-undo"
+                                  aria-label="Undo last pass"
+                                  disabled={!!busy || !passed.length}
+                                  onClick={undoPass}
+                                >
+                                  ↶
+                                </button>
+                                <button
+                                  className="button secondary"
+                                  disabled={!!busy}
+                                  onClick={() => pass(candidates[0])}
+                                >
+                                  {busy === candidates[0].cardRef ? 'Saving…' : 'Pass'}
+                                </button>
+                                <button
+                                  className="button primary"
+                                  disabled={!!busy}
+                                  onClick={() => interest(candidates[0])}
+                                >
+                                  {busy === candidates[0].cardRef ? 'Saving…' : 'I’m interested'}
+                                </button>
+                              </div>
                             </div>
                           )}
                           <p className="live-small-note">
@@ -1379,5 +1420,40 @@ function JobEditor({
         </div>
       </form>
     </section>
+  );
+}
+
+function CandidateCardBody({ card }: { card: LiveCandidateCard }) {
+  return (
+    <article className="live-candidate-card">
+      <div className="live-candidate-top">
+        <h3>{card.handle}</h3>
+        <span className="tag">
+          {card.applied ? 'Applied to your role' : 'Open to opportunities'}
+        </span>
+      </div>
+      <h4>{card.headline}</h4>
+      <p>
+        {card.education.level} · {card.education.field} · {card.education.status}
+      </p>
+      <ul className="impact-list">
+        {card.bullets.map((bullet, index) => (
+          <li key={index}>
+            <span className="bullet-star" aria-hidden="true">
+              ✦
+            </span>
+            {bullet}
+          </li>
+        ))}
+      </ul>
+      <div className="skill-tags">
+        {card.skills.map((skill) => (
+          <span key={skill}>{skill}</span>
+        ))}
+      </div>
+      <div className="live-candidate-footer">
+        <span>Identity protected · approved profile</span>
+      </div>
+    </article>
   );
 }

@@ -1788,3 +1788,81 @@ textarea {
     max-width: 100%;
   }
 }
+
+/* Swipe deck card (shared by the demo and connected workspace). */
+.swipe-card {
+  position: relative;
+  touch-action: pan-y;
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+  cursor: grab;
+  border-radius: 14px;
+}
+.swipe-card.dragging {
+  transition: none;
+  cursor: grabbing;
+  user-select: none;
+}
+.swipe-card:focus-visible {
+  outline: 2px solid #3b704c;
+  outline-offset: 4px;
+}
+.swipe-stamp {
+  position: absolute;
+  top: 18px;
+  z-index: 2;
+  padding: 6px 12px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  pointer-events: none;
+  background: #fffffff0;
+}
+.swipe-stamp.right {
+  left: 18px;
+  color: #3b704c;
+  transform: rotate(-8deg);
+}
+.swipe-stamp.left {
+  right: 18px;
+  color: #9a5b46;
+  transform: rotate(8deg);
+}
+.swipe-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+.swipe-actions .button {
+  flex: 1;
+}
+.swipe-actions .swipe-undo {
+  flex: 0 0 48px;
+  padding: 0;
+}
+.swipe-progress {
+  font-size: 12px;
+  color: #7d8a70;
+  margin: 0 0 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .swipe-card {
+    transition: none;
+  }
+}
+.touch-hint {
+  display: none;
+  text-align: center;
+  font-size: 12px;
+  color: #7d8a70;
+  margin: 12px 0 0;
+}
+@media (hover: none) {
+  .touch-hint {
+    display: block;
+  }
+}

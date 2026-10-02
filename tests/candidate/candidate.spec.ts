@@ -55,3 +55,23 @@ test('profile edits stay in the fictional session and reset clears them', async 
     'Fictional helpful teammate',
   );
 });
+
+test('demo deck swipes with touch', async ({ page }) => {
+  const card = page.getByLabel(/Swipe right to apply/);
+  await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  const box = (await card.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + Math.min(80, box.height / 2);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  for (let step = 1; step <= 10; step++)
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: x - 26 * step, y }],
+    });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.getByRole('button', { name: 'Undo last pass' })).toBeEnabled();
+  await expect(
+    page.getByRole('link', { name: 'Read Campus café team member job details' }),
+  ).toHaveCount(0);
+});

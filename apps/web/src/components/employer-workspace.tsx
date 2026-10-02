@@ -9,6 +9,7 @@ import {
   calculateFit,
 } from '@swipe/domain';
 import { JobSchema, type DemoAction, type DemoState } from '@swipe/contracts';
+import { SwipeCard } from './swipe-card';
 
 type View = 'discover' | 'pipeline' | 'interviews' | 'jobs';
 type Stage = 'Matched' | 'Interview booked' | 'Interviewed' | 'Revealed';
@@ -351,7 +352,9 @@ export function EmployerWorkspace() {
             </strong>
           </div>
           <div className="topbar-actions">
-            <a href="/sign-in" className="live-auth-link">Sign in to live workspace ↗</a>
+            <a href="/sign-in" className="live-auth-link">
+              Sign in to live workspace ↗
+            </a>
             <button
               className="reset-demo"
               onClick={() => {
@@ -465,88 +468,79 @@ export function EmployerWorkspace() {
                     </label>
                   </div>
                   {candidate ? (
-                    <article
-                      className="candidate-card"
-                      tabIndex={0}
-                      aria-label={`Candidate ${candidate.id}. Use left arrow to pass or right arrow for interested.`}
-                      onKeyDown={(e) => {
-                        if (e.target !== e.currentTarget) return;
-                        if (e.key === 'ArrowRight') {
-                          e.preventDefault();
-                          swipe(true);
-                        }
-                        if (e.key === 'ArrowLeft') {
-                          e.preventDefault();
-                          swipe(false);
-                        }
-                      }}
+                    <SwipeCard
+                      key={candidate.id}
+                      label={`Candidate ${candidate.id}`}
+                      onSwipe={(direction) => swipe(direction === 'right')}
                     >
-                      <div className="card-top">
-                        <div className="candidate-symbol">
-                          <span>✳</span>
-                        </div>
-                        <div>
-                          <div className="candidate-id">Candidate {candidate.id}</div>
-                          <div className="privacy-label">
-                            <Icon name="lock" size={12} />
-                            Identity protected
+                      <article className="candidate-card">
+                        <div className="card-top">
+                          <div className="candidate-symbol">
+                            <span>✳</span>
                           </div>
+                          <div>
+                            <div className="candidate-id">Candidate {candidate.id}</div>
+                            <div className="privacy-label">
+                              <Icon name="lock" size={12} />
+                              Identity protected
+                            </div>
+                          </div>
+                          <span className={`applied-badge ${candidate.applied ? '' : 'discovery'}`}>
+                            {candidate.applied ? '↗ Applied to your job' : 'Open to opportunities'}
+                          </span>
                         </div>
-                        <span className={`applied-badge ${candidate.applied ? '' : 'discovery'}`}>
-                          {candidate.applied ? '↗ Applied to your job' : 'Open to opportunities'}
-                        </span>
-                      </div>
-                      <h2 className="candidate-headline">{candidate.headline}</h2>
-                      <p className="education">{candidate.field}</p>
-                      <div className="profile-divider" />
-                      <h3 className="mini-heading">WHAT THEY BRING</h3>
-                      <ul className="impact-list">
-                        {candidate.bullets.map((bullet) => (
-                          <li key={bullet}>
-                            <span className="bullet-star">✦</span>
-                            {bullet}
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="skill-tags">
-                        {candidate.skills.map((skill) => (
-                          <span key={skill}>{skill}</span>
-                        ))}
-                      </div>
-                      <div className="candidate-meta">
-                        <span>
-                          <Icon name="clock" size={17} />
-                          {candidate.availability}
-                        </span>
-                        <span>
-                          <Icon name="pin" size={17} />
-                          {candidate.commute}
-                        </span>
-                      </div>
-                      {details && (
-                        <div className="details-panel">
-                          <strong>Why this candidate?</strong>
-                          <ul>
-                            {fit?.reasons.map((reason) => (
-                              <li key={reason}>{reason}</li>
-                            ))}
-                          </ul>
-                          <strong>Availability</strong>
-                          <p>
-                            {sourceCandidate?.availability.days.join(', ')} ·{' '}
-                            {sourceCandidate?.availability.hoursPerWeek} hours per week
-                          </p>
+                        <h2 className="candidate-headline">{candidate.headline}</h2>
+                        <p className="education">{candidate.field}</p>
+                        <div className="profile-divider" />
+                        <h3 className="mini-heading">WHAT THEY BRING</h3>
+                        <ul className="impact-list">
+                          {candidate.bullets.map((bullet) => (
+                            <li key={bullet}>
+                              <span className="bullet-star">✦</span>
+                              {bullet}
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="skill-tags">
+                          {candidate.skills.map((skill) => (
+                            <span key={skill}>{skill}</span>
+                          ))}
                         </div>
-                      )}
-                      <button
-                        className="details-button"
-                        onClick={() => setDetails((d) => !d)}
-                        aria-expanded={details}
-                      >
-                        {details ? 'Show less' : 'See profile details'}
-                        <span>{details ? '−' : '+'}</span>
-                      </button>
-                    </article>
+                        <div className="candidate-meta">
+                          <span>
+                            <Icon name="clock" size={17} />
+                            {candidate.availability}
+                          </span>
+                          <span>
+                            <Icon name="pin" size={17} />
+                            {candidate.commute}
+                          </span>
+                        </div>
+                        {details && (
+                          <div className="details-panel">
+                            <strong>Why this candidate?</strong>
+                            <ul>
+                              {fit?.reasons.map((reason) => (
+                                <li key={reason}>{reason}</li>
+                              ))}
+                            </ul>
+                            <strong>Availability</strong>
+                            <p>
+                              {sourceCandidate?.availability.days.join(', ')} ·{' '}
+                              {sourceCandidate?.availability.hoursPerWeek} hours per week
+                            </p>
+                          </div>
+                        )}
+                        <button
+                          className="details-button"
+                          onClick={() => setDetails((d) => !d)}
+                          aria-expanded={details}
+                        >
+                          {details ? 'Show less' : 'See profile details'}
+                          <span>{details ? '−' : '+'}</span>
+                        </button>
+                      </article>
+                    </SwipeCard>
                   ) : (
                     <div className="empty-card">
                       <span>✳</span>
@@ -596,6 +590,7 @@ export function EmployerWorkspace() {
                       I’m interested
                     </button>
                   </div>
+                  <p className="touch-hint">Swipe right if you’re interested, left to pass</p>
                   <p className="keyboard-hint">
                     Focus the card and use <kbd>←</kbd> to pass or <kbd>→</kbd> for interested
                   </p>

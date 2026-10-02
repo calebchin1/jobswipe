@@ -10,6 +10,7 @@ September 29, 2026. This is a connected development build, not a production-comp
 - Candidate signup/sign-in, account provisioning, native chunked SecureStore sessions, memory-only browser sessions and server-backed account state.
 - Employer organizations start unverified. Owners can prepare validated drafts; only verified companies publish immutable job versions and browse anonymous candidate cards.
 - Private candidate profile drafts await review. Approved profiles remain separate from pending edits. Visibility changes independently; hidden candidates can explicitly apply without enabling general recruiter discovery.
+- Swipe decks on phones for both sides (touch, mouse and arrow keys, with button equivalents). Passes and undo persist server-side per candidate or job team and are never shown to the other party.
 - Persistent apply, employer interest, mutual matching, actor-specific application lists, idempotent retries and terminal withdrawal. Connected screens never substitute demo data after an error.
 - Interview slots with timezone-qualified instants, 15–60 minute duration, booking/cancellation, immutable applied-version question identities, a five-minute scheduling buffer and prevention of double booking. No client can mark attendance or completion.
 - Authenticated anonymous calendar-file generation with UTC dates, escaped content and safe UTF-8 line folding. Downloads do not auto-update.
@@ -23,8 +24,8 @@ All workflow requests use either verified candidate Bearer sessions or same-orig
 |---|---|
 | Authentication | `auth/sign-up`, `auth/sign-in`, `auth/sign-out`; confirmation at `/auth/confirm` |
 | Accounts | `me`, `account/bootstrap`, `employers` |
-| Employer jobs | `employers/:id/jobs`, `jobs/:id/publish`, `jobs/:id/candidates`, `jobs/:id/interest`, `jobs/:id/applications` |
-| Candidate | `candidate/profile`, `candidate/visibility`, `candidate/jobs`, `candidate/applications`, `jobs/:id/apply`, `applications/:id/withdraw` |
+| Employer jobs | `employers/:id/jobs`, `jobs/:id/publish`, `jobs/:id/candidates`, `jobs/:id/candidates/:cardId/pass` (+ `/undo`), `jobs/:id/interest`, `jobs/:id/applications` |
+| Candidate | `candidate/profile`, `candidate/visibility`, `candidate/jobs`, `candidate/applications`, `jobs/:id/apply`, `jobs/:id/pass` (+ `/undo`), `applications/:id/withdraw` |
 | Scheduling | `jobs/:id/interview-slots`, `interview-slots/:id/cancel`, `applications/:id/interview-slots`, `applications/:id/interviews`, `candidate/interviews`, `jobs/:id/interviews`, `interviews/:id/cancel` |
 | Calendar | `applications/:id/interviews/:interviewId/calendar` |
 | Guarded disclosure foundation | `interviews/:id/scorecard`, `applications/:id/reveal-authorization`, `reveals`, `reveals/:id` |
@@ -56,7 +57,7 @@ Do not run two web production builds concurrently: they share `.next`. Exported 
 2. Actual LiveKit audio calls, microphone permissions, participant authentication, provider attendance evidence and confirmations. Scheduled events are not evidence that an interview happened.
 3. Resume upload/quarantine/scanning/redaction/approval, protected download streaming and reviewed identity-sharing consent. The placeholder `synthetic-v1` consent is not for real candidates.
 4. Worker delivery/retries, email and push, reminders, exact interview outcome notices and reconciliation. Outbox entries mean intended work, not sent messages.
-5. Anonymous chat, full availability/commute/preference matching, daily quotas, production swipe gestures, reports and moderation.
+5. Anonymous chat, full availability/commute/preference matching, daily quotas, saved jobs, reports and moderation. Swipe gestures are untested on physical devices.
 6. Privacy export/deletion, operational retention, recovery drills, accessibility accommodations, provider staging verification and native device/store releases.
 
 Product/legal questions remain in [scope](01-product-scope.md). No safety or compliance conclusion follows from passing software tests. Setup is in [connected development](11-connected-development.md).

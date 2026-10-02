@@ -14,6 +14,7 @@ import {
 import { liveRequest, useLiveAuth } from '../src/live/auth';
 import { LiveScreen, Status } from '../src/live/ui';
 import { Button, Empty, Heading, s, Tag } from '../src/ui';
+import { SwipeCard } from '../src/SwipeCard';
 export default function Live() {
   const auth = useLiveAuth();
   const userId = auth.sessionKey;
@@ -31,12 +32,14 @@ export default function Live() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [passed, setPassed] = useState<LiveJob[]>([]);
   const sequence = useRef(0);
   useEffect(() => {
     setData(null);
     setError('');
     setNotice('');
     setConfirm(null);
+    setPassed([]);
     sequence.current++;
   }, [userId]);
   const refresh = useCallback(async () => {
@@ -96,6 +99,46 @@ export default function Live() {
     } catch (failure) {
       if (identity.current === actor)
         setError(failure instanceof Error ? failure.message : 'Request failed.');
+    } finally {
+      if (identity.current === actor) setBusy(false);
+    }
+  }
+  async function pass(job: LiveJob) {
+    const actor = userId;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await liveRequest(`/jobs/${job.id}/pass`, 'POST', {});
+      if (identity.current !== actor) return;
+      setPassed((previous) => [job, ...previous]);
+      setData((current) =>
+        current ? { ...current, jobs: current.jobs.filter((item) => item.id !== job.id) } : null,
+      );
+      setNotice(`Passed on ${job.details?.title ?? 'this job'}. The employer isn’t notified.`);
+    } catch (failure) {
+      if (identity.current === actor)
+        setError(failure instanceof Error ? failure.message : 'Could not pass on this job.');
+    } finally {
+      if (identity.current === actor) setBusy(false);
+    }
+  }
+  async function undoPass() {
+    const [job, ...rest] = passed;
+    if (!job) return;
+    const actor = userId;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await liveRequest(`/jobs/${job.id}/pass/undo`, 'POST', {});
+      if (identity.current !== actor) return;
+      setPassed(rest);
+      setData((current) => (current ? { ...current, jobs: [job, ...current.jobs] } : null));
+      setNotice(`${job.details?.title ?? 'The job'} is back in your deck.`);
+    } catch (failure) {
+      if (identity.current === actor)
+        setError(failure instanceof Error ? failure.message : 'Could not undo that pass.');
     } finally {
       if (identity.current === actor) setBusy(false);
     }
@@ -193,74 +236,116 @@ export default function Live() {
             </Text>
           </View>
           <Heading eyebrow="OPEN POSTINGS" title="Explore jobs." />
-          {current.jobs.length === 0 && (
-            <Empty
-              title="No available jobs yet."
-              description="Refresh later. No fictional listings are substituted here."
-            />
-          )}
-          {current.jobs.map((job) => {
-            const details = job.details;
-            const applied = current.applications.find(
-              (application) => application.jobId === job.id,
+          {(() => {
+            const deck = current.jobs.filter(
+              (job) => !current.applications.some((application) => application.jobId === job.id),
             );
+            const job = deck[0];
+            if (!job)
+              return (
+                <>
+                  <Empty
+                    title={passed.length ? 'You’re all caught up.' : 'No available jobs yet.'}
+                    description={
+                      passed.length
+                        ? 'You’ve seen every open job. Refresh later for new postings.'
+                        : 'Refresh later. No fictional listings are substituted here.'
+                    }
+                  />
+                  {!!passed.length && (
+                    <Button
+                      secondary
+                      disabled={busy}
+                      label="Undo last pass"
+                      onPress={() => void undoPass()}
+                    />
+                  )}
+                </>
+              );
+            const details = job.details;
+            const canApply = job.canApply && current.account.status === 'active';
             return (
-              <View style={s.panel} key={job.id}>
-                <Text style={s.cardTitle}>{details?.title ?? 'Posting unavailable'}</Text>
-                <Text style={s.body}>
-                  {job.company} · {details?.location}
+              <>
+                <Text style={s.body} accessibilityLiveRegion="polite">
+                  {deck.length} {deck.length === 1 ? 'job' : 'jobs'} in your deck · swipe right to
+                  apply, left to pass
                 </Text>
-                {details && (
-                  <>
-                    <Text style={s.label}>
-                      CAD ${(details.payMinMinor / 100).toFixed(2)}–$
-                      {(details.payMaxMinor / 100).toFixed(2)} / {details.payPeriod}
-                    </Text>
+                <SwipeCard
+                  key={job.id}
+                  label={details?.title ?? 'Posting'}
+                  canSwipe={(direction) => {
+                    if (busy) return false;
+                    if (direction === 'right' && !canApply) {
+                      setNotice('Application checks are still pending for this job.');
+                      return false;
+                    }
+                    return true;
+                  }}
+                  onSwipe={(direction) => {
+                    if (direction === 'left') void pass(job);
+                    else
+                      void mutate(`/jobs/${job.id}/apply`, 'Application received by the server.');
+                  }}
+                >
+                  <View style={s.panel}>
+                    <Text style={s.cardTitle}>{details?.title ?? 'Posting unavailable'}</Text>
                     <Text style={s.body}>
-                      {details.hoursPerWeek} hours/week · {details.schedule.join(', ')}
+                      {job.company} · {details?.location}
                     </Text>
-                    <Text style={s.body}>{details.description}</Text>
-                    <View style={s.row}>
-                      {details.skills.map((skill) => (
-                        <Tag key={skill}>{skill}</Tag>
-                      ))}
-                    </View>
-                    <Text style={s.label}>Requirements</Text>
-                    {details.mustHaves.map((requirement) => (
-                      <Text key={requirement} style={s.body}>
-                        • {requirement}
+                    {details && (
+                      <>
+                        <Text style={s.label}>
+                          CAD ${(details.payMinMinor / 100).toFixed(2)}–$
+                          {(details.payMaxMinor / 100).toFixed(2)} / {details.payPeriod}
+                        </Text>
+                        <Text style={s.body}>
+                          {details.hoursPerWeek} hours/week · {details.schedule.join(', ')}
+                        </Text>
+                        <Text style={s.body}>{details.description}</Text>
+                        <View style={s.row}>
+                          {details.skills.map((skill) => (
+                            <Tag key={skill}>{skill}</Tag>
+                          ))}
+                        </View>
+                        <Text style={s.label}>Requirements</Text>
+                        {details.mustHaves.map((requirement) => (
+                          <Text key={requirement} style={s.body}>
+                            • {requirement}
+                          </Text>
+                        ))}
+                        <Text style={s.body}>
+                          Existing vacancy: {details.isVacancy ? 'yes' : 'no'} · AI screening:{' '}
+                          {details.usesAiScreening ? 'yes' : 'no'}
+                        </Text>
+                      </>
+                    )}
+                    {!canApply && (
+                      <Text style={s.body}>
+                        Profile review or eligibility requirements are not yet satisfied for this
+                        job. Approval cannot be granted in this app.
                       </Text>
-                    ))}
-                    <Text style={s.body}>
-                      Existing vacancy: {details.isVacancy ? 'yes' : 'no'} · AI screening:{' '}
-                      {details.usesAiScreening ? 'yes' : 'no'}
-                    </Text>
-                  </>
-                )}
+                    )}
+                  </View>
+                </SwipeCard>
+                <View style={s.row}>
+                  <Button
+                    secondary
+                    disabled={busy || !passed.length}
+                    label="Undo last pass"
+                    onPress={() => void undoPass()}
+                  />
+                  <Button secondary disabled={busy} label="Pass" onPress={() => void pass(job)} />
+                </View>
                 <Button
-                  disabled={
-                    busy || !job.canApply || !!applied || current.account.status !== 'active'
-                  }
-                  label={
-                    applied
-                      ? applied.stage
-                      : job.canApply
-                        ? 'Apply to this job'
-                        : 'Application checks pending'
-                  }
+                  disabled={busy || !canApply}
+                  label={canApply ? 'Apply to this job' : 'Application checks pending'}
                   onPress={() => {
                     void mutate(`/jobs/${job.id}/apply`, 'Application received by the server.');
                   }}
                 />
-                {!job.canApply && !applied && (
-                  <Text style={s.body}>
-                    Profile review or eligibility requirements are not yet satisfied for this job.
-                    Approval cannot be granted in this app.
-                  </Text>
-                )}
-              </View>
+              </>
             );
-          })}
+          })()}
           {current.nextCursor && (
             <Button
               secondary

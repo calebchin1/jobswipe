@@ -65,6 +65,8 @@ The September 28, 2026 product plan is the source of product intent. The subsequ
 8. [Implementation tickets and release gates](docs/08-implementation-plan.md)
 9. [Technical and regulatory references](docs/09-references.md)
 
+**Start with the [roadmap](docs/12-roadmap.md)**: current state and the next shippable steps for each side.
+
 Next integrations: trusted profile/business review, private eligibility, verified audio interviews, protected documents and reliable notifications. Production identity sharing still requires reviewed privacy policies, real interview evidence and protected document delivery.
 
 ## Planning conventions

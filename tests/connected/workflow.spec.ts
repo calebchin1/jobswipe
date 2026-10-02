@@ -46,8 +46,9 @@ test('candidate application and employer match persist across authenticated clie
   expect(await card.innerText()).not.toMatch(
     /Alex Example|alex@example|00000000-0000-4000-8000-000000000001/,
   );
-  await card.getByRole('button', { name: 'I’m interested' }).click();
-  await expect(card.getByRole('button', { name: 'Mutual match ✓' })).toBeVisible();
+  await page.getByRole('button', { name: 'I’m interested', exact: true }).click();
+  await expect(page.getByText(/You matched with Candidate/)).toBeVisible();
+  await expect(card).toHaveCount(0);
   await page.reload();
   await page.getByRole('tab', { name: 'Applications', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'Matched Both sides are interested' })).toBeVisible();
@@ -81,32 +82,56 @@ test('candidate application and employer match persist across authenticated clie
   const startsAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const endsAt = new Date(Date.parse(startsAt) + 30 * 60 * 1000).toISOString();
   const offered = await page.request.post(`/api/v1/jobs/${cafeJob}/interview-slots`, {
-    headers: { Origin: origin }, data: { startsAt, endsAt, timeZone: 'America/Toronto' },
+    headers: { Origin: origin },
+    data: { startsAt, endsAt, timeZone: 'America/Toronto' },
   });
   expect(offered.status()).toBe(200);
   const slot = (await offered.json()).slot;
-  const slots = await request.get(`/api/v1/applications/${applicationId}/interview-slots`, { headers });
-  expect((await slots.json()).slots.some((item: {id:string}) => item.id === slot.id)).toBe(true);
-  const booked = await request.post(`/api/v1/applications/${applicationId}/interviews`, { headers, data: { slotId: slot.id } });
+  const slots = await request.get(`/api/v1/applications/${applicationId}/interview-slots`, {
+    headers,
+  });
+  expect((await slots.json()).slots.some((item: { id: string }) => item.id === slot.id)).toBe(true);
+  const booked = await request.post(`/api/v1/applications/${applicationId}/interviews`, {
+    headers,
+    data: { slotId: slot.id },
+  });
   expect(booked.status()).toBe(200);
   const interview = (await booked.json()).interview;
   expect(interview.status).toBe('scheduled');
-  const duplicate = await request.post(`/api/v1/applications/${applicationId}/interviews`, { headers, data: { slotId: slot.id } });
+  const duplicate = await request.post(`/api/v1/applications/${applicationId}/interviews`, {
+    headers,
+    data: { slotId: slot.id },
+  });
   expect((await duplicate.json()).interview.id).toBe(interview.id);
   const employerInterviews = await page.request.get(`/api/v1/jobs/${cafeJob}/interviews`);
   expect((await employerInterviews.json()).interviews[0].id).toBe(interview.id);
-  const calendar = await page.request.get(`/api/v1/applications/${applicationId}/interviews/${interview.id}/calendar`);
+  const calendar = await page.request.get(
+    `/api/v1/applications/${applicationId}/interviews/${interview.id}/calendar`,
+  );
   expect(calendar.status()).toBe(200);
   expect(calendar.headers()['content-type']).toContain('text/calendar');
   expect(await calendar.text()).toContain('BEGIN:VEVENT');
   expect(await calendar.text()).not.toMatch(/Alex Example|alex@example|ATTENDEE/);
-  const premature = await page.request.post(`/api/v1/interviews/${interview.id}/scorecard`, {headers:{Origin:origin},data:{scores:[{questionId:'q1',score:4},{questionId:'q2',score:4},{questionId:'q3',score:4}]}});
+  const premature = await page.request.post(`/api/v1/interviews/${interview.id}/scorecard`, {
+    headers: { Origin: origin },
+    data: {
+      scores: [
+        { questionId: 'q1', score: 4 },
+        { questionId: 'q2', score: 4 },
+        { questionId: 'q3', score: 4 },
+      ],
+    },
+  });
   expect(premature.status()).toBe(403);
   expect(
     (await request.post(`/api/v1/applications/${applicationId}/withdraw`, { headers })).status(),
   ).toBe(200);
-  const afterWithdrawal = await request.get('/api/v1/candidate/interviews', {headers});
-  expect((await afterWithdrawal.json()).interviews.find((item: {id:string})=>item.id===interview.id).status).toBe('cancelled');
+  const afterWithdrawal = await request.get('/api/v1/candidate/interviews', { headers });
+  expect(
+    (await afterWithdrawal.json()).interviews.find(
+      (item: { id: string }) => item.id === interview.id,
+    ).status,
+  ).toBe('cancelled');
   await page.reload();
   await page.getByRole('tab', { name: 'Applications', exact: true }).click();
   await expect(page.getByRole('cell', { name: 'Withdrawn candidate', exact: true })).toBeVisible();
@@ -167,37 +192,109 @@ test('signup never grants company verification or profile publication', async ({
 });
 
 test('cookie refresh preserves actor identity without exposing tokens', async ({ page }) => {
-  expect((await page.request.post('/api/v1/auth/sign-in',{headers:{Origin:origin},data:{email:employerEmail,password}})).status()).toBe(200);
-  const sessionCookies=(await page.context().cookies()).filter(c=>c.name==='swipe-auth'||/^swipe-auth\.\d+$/.test(c.name)).sort((a,b)=>a.name.localeCompare(b.name));
-  const encoded=sessionCookies.map(c=>c.value).join('');
+  expect(
+    (
+      await page.request.post('/api/v1/auth/sign-in', {
+        headers: { Origin: origin },
+        data: { email: employerEmail, password },
+      })
+    ).status(),
+  ).toBe(200);
+  const sessionCookies = (await page.context().cookies())
+    .filter((c) => c.name === 'swipe-auth' || /^swipe-auth\.\d+$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const encoded = sessionCookies.map((c) => c.value).join('');
   expect(encoded.startsWith('base64-')).toBe(true);
-  const session=JSON.parse(Buffer.from(encoded.slice(7),'base64url').toString());
-  const oldRefresh=session.refresh_token;
-  session.expires_at=1;
-  const replacement=`base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
-  await page.context().clearCookies({name:/^swipe-auth/});
-  await page.context().addCookies([{...sessionCookies[0],name:'swipe-auth',value:replacement}]);
-  const me=await page.request.get('/api/v1/me');
+  const session = JSON.parse(Buffer.from(encoded.slice(7), 'base64url').toString());
+  const oldRefresh = session.refresh_token;
+  session.expires_at = 1;
+  const replacement = `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`;
+  await page.context().clearCookies({ name: /^swipe-auth/ });
+  await page
+    .context()
+    .addCookies([{ ...sessionCookies[0], name: 'swipe-auth', value: replacement }]);
+  const me = await page.request.get('/api/v1/me');
   expect(me.status()).toBe(200);
   expect((await me.json()).account.accountId).toBe('00000000-0000-4000-8000-000000000003');
-  const refreshed=(await page.context().cookies()).filter(c=>c.name==='swipe-auth'||/^swipe-auth\.\d+$/.test(c.name)).sort((a,b)=>a.name.localeCompare(b.name)).map(c=>c.value).join('');
-  expect(JSON.parse(Buffer.from(refreshed.slice(7),'base64url').toString()).refresh_token).not.toBe(oldRefresh);
+  const refreshed = (await page.context().cookies())
+    .filter((c) => c.name === 'swipe-auth' || /^swipe-auth\.\d+$/.test(c.name))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((c) => c.value)
+    .join('');
+  expect(
+    JSON.parse(Buffer.from(refreshed.slice(7), 'base64url').toString()).refresh_token,
+  ).not.toBe(oldRefresh);
   expect((await page.request.get('/api/v1/me')).status()).toBe(200);
 });
 
-test('verified employer publishes immutable job versions and candidate sees only publication',async({request})=>{
-  expect((await request.post('/api/v1/auth/sign-in',{headers:{Origin:origin},data:{email:employerEmail,password}})).status()).toBe(200);
-  const draft={title:'New campus role',description:'Help organize stock and support customers.',payMinMinor:2000,payMaxMinor:2300,payPeriod:'hour',currency:'CAD',location:'Waterloo',hoursPerWeek:15,schedule:['Sat','Sun'],skills:['Organization'],mustHaves:['Weekend availability'],niceToHaves:[],questions:['How do you organize your work?','Tell us about helping a customer.','How do you learn a new task?'],isVacancy:true,usesAiScreening:false,workplaceType:'retail',jobType:'Part-time'};
-  const saved=await request.post(`/api/v1/employers/${cafe}/jobs`,{headers:{Origin:origin},data:{draft}});
-  expect(saved.status()).toBe(200);const jobId=(await saved.json()).jobId;
-  const published=await request.post(`/api/v1/jobs/${jobId}/publish`,{headers:{Origin:origin}});
-  expect(published.status()).toBe(200);const versionId=(await published.json()).versionId;
-  expect((await (await request.post(`/api/v1/jobs/${jobId}/publish`,{headers:{Origin:origin}})).json()).versionId).toBe(versionId);
-  expect((await request.post(`/api/v1/employers/${cafe}/jobs`,{headers:{Origin:origin},data:{jobId,draft:{...draft,title:'Changed unpublished title'}}})).status()).toBe(200);
-  const accessToken=await token(request,candidateEmail);
-  const jobs=await request.get('/api/v1/candidate/jobs',{headers:{Authorization:`Bearer ${accessToken}`}});
-  const visible=(await jobs.json()).jobs.find((j:{id:string})=>j.id===jobId);
-  expect(visible.details.title).toBe('New campus role');expect(visible.versionId).toBe(versionId);expect(visible.hasUnpublishedChanges).toBe(false);
-  const next=await request.post(`/api/v1/jobs/${jobId}/publish`,{headers:{Origin:origin}});
+test('verified employer publishes immutable job versions and candidate sees only publication', async ({
+  request,
+}) => {
+  expect(
+    (
+      await request.post('/api/v1/auth/sign-in', {
+        headers: { Origin: origin },
+        data: { email: employerEmail, password },
+      })
+    ).status(),
+  ).toBe(200);
+  const draft = {
+    title: 'New campus role',
+    description: 'Help organize stock and support customers.',
+    payMinMinor: 2000,
+    payMaxMinor: 2300,
+    payPeriod: 'hour',
+    currency: 'CAD',
+    location: 'Waterloo',
+    hoursPerWeek: 15,
+    schedule: ['Sat', 'Sun'],
+    skills: ['Organization'],
+    mustHaves: ['Weekend availability'],
+    niceToHaves: [],
+    questions: [
+      'How do you organize your work?',
+      'Tell us about helping a customer.',
+      'How do you learn a new task?',
+    ],
+    isVacancy: true,
+    usesAiScreening: false,
+    workplaceType: 'retail',
+    jobType: 'Part-time',
+  };
+  const saved = await request.post(`/api/v1/employers/${cafe}/jobs`, {
+    headers: { Origin: origin },
+    data: { draft },
+  });
+  expect(saved.status()).toBe(200);
+  const jobId = (await saved.json()).jobId;
+  const published = await request.post(`/api/v1/jobs/${jobId}/publish`, {
+    headers: { Origin: origin },
+  });
+  expect(published.status()).toBe(200);
+  const versionId = (await published.json()).versionId;
+  expect(
+    (
+      await (
+        await request.post(`/api/v1/jobs/${jobId}/publish`, { headers: { Origin: origin } })
+      ).json()
+    ).versionId,
+  ).toBe(versionId);
+  expect(
+    (
+      await request.post(`/api/v1/employers/${cafe}/jobs`, {
+        headers: { Origin: origin },
+        data: { jobId, draft: { ...draft, title: 'Changed unpublished title' } },
+      })
+    ).status(),
+  ).toBe(200);
+  const accessToken = await token(request, candidateEmail);
+  const jobs = await request.get('/api/v1/candidate/jobs', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const visible = (await jobs.json()).jobs.find((j: { id: string }) => j.id === jobId);
+  expect(visible.details.title).toBe('New campus role');
+  expect(visible.versionId).toBe(versionId);
+  expect(visible.hasUnpublishedChanges).toBe(false);
+  const next = await request.post(`/api/v1/jobs/${jobId}/publish`, { headers: { Origin: origin } });
   expect((await next.json()).versionId).not.toBe(versionId);
 });

@@ -114,6 +114,16 @@ export async function startTestBackend({ port = 0, accessTokenLifetimeSeconds = 
       ['p_card', 'uuid'],
     ],
     withdraw_application: [['p_application', 'uuid']],
+    pass_job: [['p_job', 'uuid']],
+    undo_job_pass: [['p_job', 'uuid']],
+    pass_candidate_card: [
+      ['p_job', 'uuid'],
+      ['p_card', 'uuid'],
+    ],
+    undo_candidate_card_pass: [
+      ['p_job', 'uuid'],
+      ['p_card', 'uuid'],
+    ],
     submit_scorecard: [
       ['p_interview', 'uuid'],
       ['p_scores', 'jsonb'],
@@ -128,6 +138,13 @@ export async function startTestBackend({ port = 0, accessTokenLifetimeSeconds = 
     read_reveal: [['p_reveal', 'uuid']],
   };
   const rowFunctions = new Set(['list_candidate_cards', 'read_reveal']);
+  const voidFunctions = new Set([
+    'withdraw_application',
+    'pass_job',
+    'undo_job_pass',
+    'pass_candidate_card',
+    'undo_candidate_card_pass',
+  ]);
 
   function addUser(id, email, requestedRole) {
     const salt = randomBytes(16);
@@ -244,7 +261,7 @@ export async function startTestBackend({ port = 0, accessTokenLifetimeSeconds = 
       await client.query('commit');
       return rowFunctions.has(name)
         ? result.rows
-        : name === 'withdraw_application'
+        : voidFunctions.has(name)
           ? null
           : result.rows[0].value;
     } catch (error) {

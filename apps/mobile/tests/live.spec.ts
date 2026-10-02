@@ -23,6 +23,7 @@ async function mockService(
   } = {},
 ) {
   let applied = matched;
+  let passed = false;
   let booked = false;
   let cancelled = false;
   let slotTaken = false;
@@ -140,38 +141,40 @@ async function mockService(
     if (path === '/candidate/jobs')
       return route.fulfill({
         json: {
-          jobs: [
-            {
-              id: jobId,
-              employerId: '40000000-0000-4000-8000-000000000004',
-              company: 'Connected Learning Centre',
-              status: 'open',
-              versionId: null,
-              hasUnpublishedChanges: false,
-              canApply: eligible,
-              details: {
-                title: 'Learning assistant',
-                description:
-                  'Help students work through practice questions in a supported learning environment.',
-                payMinMinor: 2200,
-                payMaxMinor: 2600,
-                payPeriod: 'hour',
-                currency: 'CAD',
-                location: 'Waterloo',
-                hoursPerWeek: 12,
-                schedule: ['Mon'],
-                skills: ['Math'],
-                mustHaves: ['Patience'],
-                niceToHaves: [],
-                questions: [],
-                isVacancy: true,
-                usesAiScreening: false,
-                workplaceType: 'office',
-                minimumAge: 14,
-                jobType: 'Part-time',
-              },
-            },
-          ],
+          jobs: passed
+            ? []
+            : [
+                {
+                  id: jobId,
+                  employerId: '40000000-0000-4000-8000-000000000004',
+                  company: 'Connected Learning Centre',
+                  status: 'open',
+                  versionId: null,
+                  hasUnpublishedChanges: false,
+                  canApply: eligible,
+                  details: {
+                    title: 'Learning assistant',
+                    description:
+                      'Help students work through practice questions in a supported learning environment.',
+                    payMinMinor: 2200,
+                    payMaxMinor: 2600,
+                    payPeriod: 'hour',
+                    currency: 'CAD',
+                    location: 'Waterloo',
+                    hoursPerWeek: 12,
+                    schedule: ['Mon'],
+                    skills: ['Math'],
+                    mustHaves: ['Patience'],
+                    niceToHaves: [],
+                    questions: [],
+                    isVacancy: true,
+                    usesAiScreening: false,
+                    workplaceType: 'office',
+                    minimumAge: 14,
+                    jobType: 'Part-time',
+                  },
+                },
+              ],
           nextCursor: null,
         },
       });
@@ -242,6 +245,14 @@ async function mockService(
       booked = false;
       cancelled = true;
       return route.fulfill({ json: { interview: interview() } });
+    }
+    if (path === `/jobs/${jobId}/pass`) {
+      passed = true;
+      return route.fulfill({ json: { status: 'passed' } });
+    }
+    if (path === `/jobs/${jobId}/pass/undo`) {
+      passed = false;
+      return route.fulfill({ json: { status: 'restored' } });
     }
     if (path === `/jobs/${jobId}/apply`) {
       applied = true;
@@ -453,4 +464,58 @@ test('an unassigned scheduling viewer has no audio lobby control', async ({ page
     page.getByText('Your interview is booked. The time below is confirmed by the server.'),
   ).toBeVisible();
   await expect(page.getByRole('link', { name: 'Open audio lobby →' })).toHaveCount(0);
+});
+
+async function touchSwipe(page: Page, dx: number, dy = 0) {
+  const card = page.getByLabel(/Swipe right to apply/);
+  await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  const box = (await card.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + Math.min(80, box.height / 2);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  for (let step = 1; step <= 10; step++)
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: x + (dx * step) / 10, y: y + (dy * step) / 10 }],
+    });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
+}
+
+test('job deck swipes with touch: pass, undo, apply', async ({ page }) => {
+  const calls: string[] = [];
+  page.on('request', (request) => {
+    if (request.method() === 'POST') calls.push(new URL(request.url()).pathname);
+  });
+  await mockService(page);
+  await signIn(page);
+  await expect(page.getByText('1 job in your deck')).toBeVisible();
+
+  await touchSwipe(page, 20, 260);
+  await expect(page.getByText('1 job in your deck')).toBeVisible();
+  expect(calls.some((path) => path.endsWith('/pass') || path.endsWith('/apply'))).toBe(false);
+
+  await touchSwipe(page, -260);
+  await expect(page.getByText(/Passed on Learning assistant/)).toBeVisible();
+  await expect(page.getByText('You’re all caught up.')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo last pass' }).click();
+  await expect(page.getByText('Learning assistant is back in your deck.')).toBeVisible();
+
+  await touchSwipe(page, 260);
+  await expect(page.getByText('Application received by the server.')).toBeVisible();
+  expect(calls.filter((path) => /\/jobs\/.+\/(pass|apply)/.test(path))).toEqual([
+    `/api/v1/jobs/${jobId}/pass`,
+    `/api/v1/jobs/${jobId}/pass/undo`,
+    `/api/v1/jobs/${jobId}/apply`,
+  ]);
+});
+
+test('ineligible right swipe is refused without calling apply', async ({ page }) => {
+  await mockService(page, { eligible: false });
+  await signIn(page);
+  await expect(page.getByRole('button', { name: 'Application checks pending' })).toBeDisabled();
+  await touchSwipe(page, 260);
+  await expect(page.getByText('Application checks are still pending for this job.')).toBeVisible();
+  await expect(page.getByText('1 job in your deck')).toBeVisible();
 });

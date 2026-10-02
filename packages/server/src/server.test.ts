@@ -158,6 +158,8 @@ describe('allowlisted response projections', () => {
       'unexpected',
     );
     expect(projectRpcResult(workflows.employerInterest, null)).toBeNull();
+    for (const pass of [workflows.passJob, workflows.undoJobPass, workflows.passCard, workflows.undoCardPass])
+      expect(projectRpcResult(pass, { candidate_id: userId })).toBeNull();
   });
 });
 
