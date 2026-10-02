@@ -80,10 +80,10 @@ export function SwipeCard({
       style={[styles.card, { transform: [{ translateX: x }, { rotate }] }]}
     >
       <Animated.View pointerEvents="none" style={[styles.stamp, styles.right, { opacity: right }]}>
-        <Text style={[styles.stampText, { color: '#295C46' }]}>{rightLabel}</Text>
+        <Text style={[styles.stampText, { color: '#7FE0A8' }]}>{rightLabel}</Text>
       </Animated.View>
       <Animated.View pointerEvents="none" style={[styles.stamp, styles.left, { opacity: left }]}>
-        <Text style={[styles.stampText, { color: '#9A5B46' }]}>{leftLabel}</Text>
+        <Text style={[styles.stampText, { color: '#FF8A7A' }]}>{leftLabel}</Text>
       </Animated.View>
       <View>{children}</View>
     </Animated.View>
@@ -94,15 +94,14 @@ const styles = StyleSheet.create({
   card: { position: 'relative' },
   stamp: {
     position: 'absolute',
-    top: 16,
+    top: 40,
     zIndex: 2,
-    borderWidth: 2,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#FFFFFFF0',
+    borderWidth: 4,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
   },
-  right: { left: 16, borderColor: '#295C46', transform: [{ rotate: '-8deg' }] },
-  left: { right: 16, borderColor: '#9A5B46', transform: [{ rotate: '8deg' }] },
-  stampText: { fontSize: 14, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  right: { left: 22, borderColor: '#7FE0A8', transform: [{ rotate: '-18deg' }] },
+  left: { right: 22, borderColor: '#FF8A7A', transform: [{ rotate: '18deg' }] },
+  stampText: { fontSize: 34, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
 });

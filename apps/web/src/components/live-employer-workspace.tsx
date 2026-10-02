@@ -19,7 +19,7 @@ import {
 } from '@swipe/contracts';
 import { LiveApiError, liveApi } from '../lib/live-api';
 import { LiveInterviewScheduling } from './live-interview-scheduling';
-import { SwipeCard } from './swipe-card';
+import { DeckStack, MatchOverlay, RoundButtons, type DeckCardContent } from './deck';
 
 type WorkspaceTab = 'candidates' | 'applications' | 'schedule' | 'details';
 function field(value: unknown, key: string): unknown {
@@ -80,6 +80,7 @@ export function LiveEmployerWorkspace() {
   const [activityError, setActivityError] = useState('');
   const [activityRevision, setActivityRevision] = useState(0);
   const [passed, setPassed] = useState<LiveCandidateCard[]>([]);
+  const [matchWith, setMatchWith] = useState('');
   const [tab, setTab] = useState<WorkspaceTab>('candidates');
   const [editing, setEditing] = useState<'new' | LiveJob | null>(null);
   const [busy, setBusy] = useState('');
@@ -261,6 +262,7 @@ export function LiveEmployerWorkspace() {
       const matched =
         nextApplications.find((application) => application.id === applicationId)?.stage ===
         'Matched';
+      if (matched) setMatchWith(card.handle);
       setNotice(
         matched
           ? `You matched with ${card.handle}. They’re now in your application pipeline.`
@@ -436,6 +438,18 @@ export function LiveEmployerWorkspace() {
   return (
     <div className="live-shell">
       {header}
+      <MatchOverlay
+        open={!!matchWith}
+        body={`You and ${matchWith} are both interested. Offer interview times so they can book a short audio conversation. Their identity stays protected.`}
+        primary={{
+          label: 'Offer interview times',
+          onClick: () => {
+            setMatchWith('');
+            setTab('schedule');
+          },
+        }}
+        onClose={() => setMatchWith('')}
+      />
       <main className="live-workspace-main" id="main">
         <div className="live-page-heading">
           <div>
@@ -782,45 +796,44 @@ export function LiveEmployerWorkspace() {
                             <div className="live-deck">
                               <p className="swipe-progress" aria-live="polite">
                                 {candidates.length}{' '}
-                                {candidates.length === 1 ? 'candidate' : 'candidates'} left · swipe
-                                right if you’re interested, left to pass
+                                {candidates.length === 1 ? 'candidate' : 'candidates'} left
                               </p>
-                              <SwipeCard
-                                key={candidates[0].cardRef}
-                                label={candidates[0].handle}
+                              <DeckStack
+                                cards={candidates.slice(0, 2).map(toDeckCard)}
                                 disabled={!!busy}
-                                onSwipe={(direction) =>
+                                onSwipe={(_, direction) =>
                                   direction === 'right'
                                     ? interest(candidates[0])
                                     : pass(candidates[0])
                                 }
-                              >
-                                <CandidateCardBody card={candidates[0]} />
-                              </SwipeCard>
-                              <div className="swipe-actions">
-                                <button
-                                  className="button secondary swipe-undo"
-                                  aria-label="Undo last pass"
-                                  disabled={!!busy || !passed.length}
-                                  onClick={undoPass}
-                                >
-                                  ↶
-                                </button>
-                                <button
-                                  className="button secondary"
-                                  disabled={!!busy}
-                                  onClick={() => pass(candidates[0])}
-                                >
-                                  {busy === candidates[0].cardRef ? 'Saving…' : 'Pass'}
-                                </button>
-                                <button
-                                  className="button primary"
-                                  disabled={!!busy}
-                                  onClick={() => interest(candidates[0])}
-                                >
-                                  {busy === candidates[0].cardRef ? 'Saving…' : 'I’m interested'}
-                                </button>
-                              </div>
+                              />
+                              <RoundButtons
+                                actions={[
+                                  {
+                                    label: 'Undo last pass',
+                                    glyph: '↶',
+                                    tone: 'undo',
+                                    disabled: !!busy || !passed.length,
+                                    onClick: undoPass,
+                                  },
+                                  {
+                                    label: 'Pass',
+                                    glyph: '✕',
+                                    tone: 'pass',
+                                    big: true,
+                                    disabled: !!busy,
+                                    onClick: () => pass(candidates[0]),
+                                  },
+                                  {
+                                    label: 'I’m interested',
+                                    glyph: '✓',
+                                    tone: 'like',
+                                    big: true,
+                                    disabled: !!busy,
+                                    onClick: () => interest(candidates[0]),
+                                  },
+                                ]}
+                              />
                             </div>
                           )}
                           <p className="live-small-note">
@@ -1423,37 +1436,31 @@ function JobEditor({
   );
 }
 
-function CandidateCardBody({ card }: { card: LiveCandidateCard }) {
-  return (
-    <article className="live-candidate-card">
-      <div className="live-candidate-top">
-        <h3>{card.handle}</h3>
-        <span className="tag">
-          {card.applied ? 'Applied to your role' : 'Open to opportunities'}
-        </span>
-      </div>
-      <h4>{card.headline}</h4>
-      <p>
-        {card.education.level} · {card.education.field} · {card.education.status}
-      </p>
-      <ul className="impact-list">
-        {card.bullets.map((bullet, index) => (
-          <li key={index}>
-            <span className="bullet-star" aria-hidden="true">
-              ✦
-            </span>
-            {bullet}
-          </li>
-        ))}
-      </ul>
-      <div className="skill-tags">
-        {card.skills.map((skill) => (
-          <span key={skill}>{skill}</span>
-        ))}
-      </div>
-      <div className="live-candidate-footer">
-        <span>Identity protected · approved profile</span>
-      </div>
-    </article>
-  );
+function toDeckCard(card: LiveCandidateCard): DeckCardContent {
+  return {
+    id: card.cardRef,
+    monogram: '✳',
+    name: card.handle,
+    headline: card.headline,
+    meta: `${card.education.level} · ${card.education.field} · ${card.education.status}`,
+    chips: card.skills,
+    badge: card.applied ? 'Applied to your role' : 'Open to opportunities',
+    details: (
+      <>
+        <h4>What they bring</h4>
+        {card.bullets.length ? (
+          <ul>
+            {card.bullets.map((bullet, index) => (
+              <li key={index}>{bullet}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No experience bullets yet.</p>
+        )}
+        <h4>Skills</h4>
+        <p>{card.skills.join(' · ')}</p>
+        <p>Identity protected · approved profile</p>
+      </>
+    ),
+  };
 }

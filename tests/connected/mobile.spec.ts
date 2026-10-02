@@ -14,7 +14,9 @@ async function signIn(page: Page) {
 /** Passes real deck cards until the job is on top; returns how many passes to undo later. */
 async function showJob(page: Page, title: string) {
   for (let passes = 0; passes < 6; passes++) {
-    if (await page.getByText(title, { exact: true }).first().isVisible()) return passes;
+    // Only the top (swipeable) card counts; the next card peeks behind it.
+    const top = page.getByLabel(/Swipe right to apply/).filter({ visible: true });
+    if ((await top.getAttribute('aria-label'))?.startsWith(`${title}.`)) return passes;
     await page.getByRole('button', { name: 'Pass', exact: true }).click();
     await expect(page.getByText(/^Passed on /)).toBeVisible();
   }

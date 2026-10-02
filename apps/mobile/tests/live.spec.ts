@@ -20,9 +20,11 @@ async function mockService(
     proposalPending = false,
     staleProposal = false,
     audioParticipant = true,
+    employerInterested = false,
   } = {},
 ) {
   let applied = matched;
+  matched = matched || employerInterested;
   let passed = false;
   let booked = false;
   let cancelled = false;
@@ -467,9 +469,16 @@ test('an unassigned scheduling viewer has no audio lobby control', async ({ page
 });
 
 async function touchSwipe(page: Page, dx: number, dy = 0) {
-  const card = page.getByLabel(/Swipe right to apply/);
+  const card = page.getByLabel(/Swipe right to apply/).filter({ visible: true });
   await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));
-  const box = (await card.boundingBox())!;
+  // Touch scrolling can keep gliding; wait until the card stops moving before aiming.
+  let box = (await card.boundingBox())!;
+  for (let settle = 0; settle < 20; settle++) {
+    await page.waitForTimeout(50);
+    const next = (await card.boundingBox())!;
+    if (next.y === box.y && next.x === box.x) break;
+    box = next;
+  }
   const x = box.x + box.width / 2;
   const y = box.y + Math.min(80, box.height / 2);
   const cdp = await page.context().newCDPSession(page);
@@ -518,4 +527,13 @@ test('ineligible right swipe is refused without calling apply', async ({ page })
   await touchSwipe(page, 260);
   await expect(page.getByText('Application checks are still pending for this job.')).toBeVisible();
   await expect(page.getByText('1 job in your deck')).toBeVisible();
+});
+
+test('applying where the employer already liked you shows the match screen', async ({ page }) => {
+  await mockService(page, { employerInterested: true });
+  await signIn(page);
+  await page.getByRole('button', { name: 'Apply to this job' }).click();
+  await expect(page.getByRole('heading', { name: 'It’s a match!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Plan your interview' }).click();
+  await expect(page.getByText(/All times are shown in your device time zone/)).toBeVisible();
 });

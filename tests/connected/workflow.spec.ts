@@ -47,6 +47,8 @@ test('candidate application and employer match persist across authenticated clie
     /Alex Example|alex@example|00000000-0000-4000-8000-000000000001/,
   );
   await page.getByRole('button', { name: 'I’m interested', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'It’s a match!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Keep swiping' }).click();
   await expect(page.getByText(/You matched with Candidate/)).toBeVisible();
   await expect(card).toHaveCount(0);
   await page.reload();

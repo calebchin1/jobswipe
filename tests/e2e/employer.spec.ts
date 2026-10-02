@@ -11,6 +11,8 @@ test('anonymous profile stays hidden through the guarded reveal workflow', async
   await expect(page.getByRole('heading', { name: 'Your next great teammate.' })).toBeVisible();
   await expect(page.getByText('alex.morgan@example.test')).toHaveCount(0);
   await page.getByRole('button', { name: 'I’m interested' }).click();
+  await expect(page.getByRole('dialog', { name: 'It’s a match!' })).toBeVisible();
+  await page.getByRole('button', { name: 'Keep swiping' }).click();
   await expect(page.getByRole('button', { name: /^Undo last/ })).toBeDisabled();
   await page
     .getByRole('navigation')
@@ -38,10 +40,10 @@ test('anonymous profile stays hidden through the guarded reveal workflow', async
 
 test('pass can be undone once without advancing an application', async ({ page }) => {
   await page.getByRole('button', { name: 'Pass for now' }).click();
-  await expect(page.getByText('Candidate K3M8', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Candidate K3M8' })).toBeVisible();
   const undo = page.getByRole('button', { name: /^Undo last/ });
   await undo.click();
-  await expect(page.getByText('Candidate A7F2', { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Candidate A7F2' })).toBeVisible();
   await page.getByRole('button', { name: 'Pass for now' }).click();
   await expect(undo).toBeDisabled();
 });

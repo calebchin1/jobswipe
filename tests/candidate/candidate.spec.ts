@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Apply →', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toBeVisible();
 });
 
 test('saving never applies; applying and withdrawal remain distinct', async ({ page }) => {
@@ -12,7 +12,7 @@ test('saving never applies; applying and withdrawal remain distinct', async ({ p
   await page.getByRole('tab', { name: /Saved/ }).click();
   await expect(page.getByRole('button', { name: 'Remove from saved' })).toBeVisible();
   await page.getByRole('tab', { name: /Discover/ }).click();
-  await page.getByRole('button', { name: 'Apply →', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
   await page.getByRole('tab', { name: /Applications/ }).click();
   await page.getByRole('link', { name: 'View timeline →' }).click();
   await expect(page.getByText('Your timeline', { exact: true })).toBeVisible();
@@ -57,9 +57,16 @@ test('profile edits stay in the fictional session and reset clears them', async 
 });
 
 test('demo deck swipes with touch', async ({ page }) => {
-  const card = page.getByLabel(/Swipe right to apply/);
+  const card = page.getByLabel(/Swipe right to apply/).filter({ visible: true });
   await card.evaluate((element) => element.scrollIntoView({ block: 'start' }));
-  const box = (await card.boundingBox())!;
+  // Touch scrolling can keep gliding; wait until the card stops moving before aiming.
+  let box = (await card.boundingBox())!;
+  for (let settle = 0; settle < 20; settle++) {
+    await page.waitForTimeout(50);
+    const next = (await card.boundingBox())!;
+    if (next.y === box.y && next.x === box.x) break;
+    box = next;
+  }
   const x = box.x + box.width / 2;
   const y = box.y + Math.min(80, box.height / 2);
   const cdp = await page.context().newCDPSession(page);

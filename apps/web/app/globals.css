@@ -1809,27 +1809,26 @@ textarea {
 }
 .swipe-stamp {
   position: absolute;
-  top: 18px;
-  z-index: 2;
-  padding: 6px 12px;
-  border: 2px solid currentColor;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1px;
+  top: 44px;
+  z-index: 3;
+  padding: 2px 14px;
+  border: 4px solid currentColor;
+  border-radius: 10px;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 2px;
   text-transform: uppercase;
   pointer-events: none;
-  background: #fffffff0;
 }
 .swipe-stamp.right {
-  left: 18px;
-  color: #3b704c;
-  transform: rotate(-8deg);
+  left: 24px;
+  color: #7fe0a8;
+  transform: rotate(-18deg);
 }
 .swipe-stamp.left {
-  right: 18px;
-  color: #9a5b46;
-  transform: rotate(8deg);
+  right: 24px;
+  color: #ff8a7a;
+  transform: rotate(18deg);
 }
 .swipe-actions {
   display: flex;
@@ -1864,5 +1863,258 @@ textarea {
 @media (hover: none) {
   .touch-hint {
     display: block;
+  }
+}
+
+/* Tinder-style deck: full-bleed card, peeking stack, round actions, match moment. */
+.deck-stack {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  height: clamp(420px, calc(100dvh - 300px), 620px);
+}
+.deck-stack > .swipe-card,
+.deck-peek {
+  position: absolute;
+  inset: 0;
+}
+/* Clip the rotated stamps to the card so they never widen the page. */
+.deck-stack > .swipe-card {
+  overflow: hidden;
+  border-radius: 24px;
+  box-shadow: 0 14px 34px #1b2a2233;
+}
+.deck-peek {
+  transform: translateY(14px) scale(0.95);
+  opacity: 0.85;
+  pointer-events: none;
+}
+.deck-card {
+  position: relative;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.deck-card::before {
+  content: '';
+  position: absolute;
+  inset: 38% 0 0;
+  background: linear-gradient(to bottom, #0000, #000000a8);
+  pointer-events: none;
+}
+.deck-monogram {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  font-size: 110px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff24;
+}
+.deck-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: #fffffff0;
+  color: #24503c;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+.deck-bottom {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 22px;
+}
+.deck-text {
+  flex: 1;
+  min-width: 0;
+}
+.deck-name {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: #fff;
+}
+.deck-headline {
+  margin: 8px 0 0;
+  font-size: 17px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #fff;
+}
+.deck-meta {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #ffffffd9;
+}
+.deck-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.deck-chips span {
+  background: #ffffff2e;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.deck-info {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  color: #243f37;
+  font-size: 18px;
+  font-weight: 800;
+}
+.deck-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 72%;
+  overflow-y: auto;
+  background: #fff;
+  color: #31443a;
+  border-radius: 22px 22px 0 0;
+  padding: 20px 22px 24px;
+  font-size: 14px;
+  line-height: 1.5;
+  z-index: 2;
+}
+.deck-sheet h4 {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6c7d63;
+}
+.deck-sheet ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.deck-sheet-close {
+  float: right;
+  width: 44px;
+  height: 44px;
+  margin: -6px -8px 0 8px;
+  border: 0;
+  border-radius: 50%;
+  background: #eef2e5;
+  color: #243f37;
+  font-size: 18px;
+  font-weight: 800;
+}
+.round-actions {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 18px;
+  margin: 22px auto 0;
+}
+.round-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.round-caption {
+  font-size: 12px;
+  color: #6f7c66;
+}
+.round-button {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 0;
+  background: #fff;
+  box-shadow: 0 6px 18px #1b2a2226;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 800;
+  transition: transform 0.12s ease-out;
+}
+.round-button.big {
+  width: 70px;
+  height: 70px;
+  font-size: 30px;
+}
+.round-button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.round-button:disabled {
+  opacity: 0.35;
+}
+.round-button.undo { color: #b8901c; }
+.round-button.pass { color: #d2584a; }
+.round-button.save { color: #3e7cb1; }
+.round-button.like { color: #2e8b57; }
+.match-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #1f4a38f2;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 32px;
+  text-align: center;
+}
+.match-overlay h2 {
+  margin: 0;
+  font-size: clamp(42px, 9vw, 64px);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+}
+.match-overlay p {
+  margin: 0;
+  max-width: 380px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #ffffffe6;
+}
+.match-primary {
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #1f4a38;
+  font-size: 16px;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 0 30px;
+  margin-top: 8px;
+}
+.match-secondary {
+  border: 0;
+  background: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  min-height: 48px;
+  padding: 0 20px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .round-button {
+    transition: none;
   }
 }

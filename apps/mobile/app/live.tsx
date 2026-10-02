@@ -14,7 +14,8 @@ import {
 import { liveRequest, useLiveAuth } from '../src/live/auth';
 import { LiveScreen, Status } from '../src/live/ui';
 import { Button, Empty, Heading, s, Tag } from '../src/ui';
-import { SwipeCard } from '../src/SwipeCard';
+import { DeckButtons, DeckStack, MatchOverlay, type DeckCardContent } from '../src/Deck';
+import { useRouter } from 'expo-router';
 export default function Live() {
   const auth = useLiveAuth();
   const userId = auth.sessionKey;
@@ -33,6 +34,8 @@ export default function Live() {
   const [notice, setNotice] = useState('');
   const [confirm, setConfirm] = useState<string | null>(null);
   const [passed, setPassed] = useState<LiveJob[]>([]);
+  const [match, setMatch] = useState<{ title: string; applicationId: string } | null>(null);
+  const router = useRouter();
   const sequence = useRef(0);
   useEffect(() => {
     setData(null);
@@ -99,6 +102,33 @@ export default function Live() {
     } catch (failure) {
       if (identity.current === actor)
         setError(failure instanceof Error ? failure.message : 'Request failed.');
+    } finally {
+      if (identity.current === actor) setBusy(false);
+    }
+  }
+  async function apply(job: LiveJob) {
+    const actor = userId;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const { applicationId } = await liveRequest<{ applicationId: string }>(
+        `/jobs/${job.id}/apply`,
+        'POST',
+        {},
+      );
+      if (identity.current !== actor) return;
+      setNotice('Application received by the server.');
+      const mine = await liveRequest<{ applications: unknown[] }>('/candidate/applications');
+      const stage = mine.applications
+        .map((item) => LiveApplicationSchema.parse(item))
+        .find((item) => item.id === applicationId)?.stage;
+      if (identity.current === actor && stage === 'Matched')
+        setMatch({ title: job.details?.title ?? 'this role', applicationId });
+      await refresh();
+    } catch (failure) {
+      if (identity.current === actor)
+        setError(failure instanceof Error ? failure.message : 'Could not apply.');
     } finally {
       if (identity.current === actor) setBusy(false);
     }
@@ -191,6 +221,23 @@ export default function Live() {
   const current = data?.user === userId ? data : null;
   return (
     <LiveScreen>
+      <MatchOverlay
+        visible={!!match}
+        body={`The employer behind ${match?.title ?? 'this role'} is interested too. Pick an interview time once they share availability.`}
+        primary={{
+          label: 'Plan your interview',
+          onPress: () => {
+            const target = match;
+            setMatch(null);
+            if (target)
+              router.push({
+                pathname: '/live-interviews',
+                params: { applicationId: target.applicationId },
+              });
+          },
+        }}
+        onClose={() => setMatch(null)}
+      />
       <Heading
         eyebrow="LIVE CANDIDATE WORKSPACE"
         title="Your next possibility."
@@ -262,17 +309,52 @@ export default function Live() {
                   )}
                 </>
               );
-            const details = job.details;
             const canApply = job.canApply && current.account.status === 'active';
+            const toCard = (item: LiveJob): DeckCardContent => {
+              const d = item.details;
+              return {
+                id: item.id,
+                monogram: `${item.company.charAt(0).toLowerCase()}.`,
+                title: d?.title ?? 'Posting unavailable',
+                subtitle: `${item.company}${d ? ` · ${d.location}` : ''}`,
+                highlight: d
+                  ? `$${(d.payMinMinor / 100).toFixed(2)}–$${(d.payMaxMinor / 100).toFixed(2)} CAD / ${d.payPeriod}`
+                  : '',
+                chips: d ? [`${d.hoursPerWeek} hrs/week`, ...d.skills] : [],
+                note:
+                  item.canApply && current.account.status === 'active'
+                    ? undefined
+                    : 'Profile review or eligibility requirements are not yet satisfied for this job. Approval cannot be granted in this app.',
+                details: d && (
+                  <>
+                    <Text style={s.label}>About the role</Text>
+                    <Text style={s.body}>{d.description}</Text>
+                    <Text style={s.label}>Schedule</Text>
+                    <Text style={s.body}>
+                      {d.hoursPerWeek} hours/week · {d.schedule.join(', ')}
+                    </Text>
+                    <Text style={s.label}>Requirements</Text>
+                    {d.mustHaves.map((requirement) => (
+                      <Text key={requirement} style={s.body}>
+                        • {requirement}
+                      </Text>
+                    ))}
+                    <Text style={s.body}>
+                      Existing vacancy: {d.isVacancy ? 'yes' : 'no'} · AI screening:{' '}
+                      {d.usesAiScreening ? 'yes' : 'no'}
+                    </Text>
+                  </>
+                ),
+              };
+            };
             return (
               <>
                 <Text style={s.body} accessibilityLiveRegion="polite">
-                  {deck.length} {deck.length === 1 ? 'job' : 'jobs'} in your deck · swipe right to
-                  apply, left to pass
+                  {deck.length} {deck.length === 1 ? 'job' : 'jobs'} in your deck
                 </Text>
-                <SwipeCard
-                  key={job.id}
-                  label={details?.title ?? 'Posting'}
+                <DeckStack
+                  cards={deck.slice(0, 2).map(toCard)}
+                  rightLabel="Apply"
                   canSwipe={(direction) => {
                     if (busy) return false;
                     if (direction === 'right' && !canApply) {
@@ -281,67 +363,37 @@ export default function Live() {
                     }
                     return true;
                   }}
-                  onSwipe={(direction) => {
+                  onSwipe={(_, direction) => {
                     if (direction === 'left') void pass(job);
-                    else
-                      void mutate(`/jobs/${job.id}/apply`, 'Application received by the server.');
+                    else void apply(job);
                   }}
-                >
-                  <View style={s.panel}>
-                    <Text style={s.cardTitle}>{details?.title ?? 'Posting unavailable'}</Text>
-                    <Text style={s.body}>
-                      {job.company} · {details?.location}
-                    </Text>
-                    {details && (
-                      <>
-                        <Text style={s.label}>
-                          CAD ${(details.payMinMinor / 100).toFixed(2)}–$
-                          {(details.payMaxMinor / 100).toFixed(2)} / {details.payPeriod}
-                        </Text>
-                        <Text style={s.body}>
-                          {details.hoursPerWeek} hours/week · {details.schedule.join(', ')}
-                        </Text>
-                        <Text style={s.body}>{details.description}</Text>
-                        <View style={s.row}>
-                          {details.skills.map((skill) => (
-                            <Tag key={skill}>{skill}</Tag>
-                          ))}
-                        </View>
-                        <Text style={s.label}>Requirements</Text>
-                        {details.mustHaves.map((requirement) => (
-                          <Text key={requirement} style={s.body}>
-                            • {requirement}
-                          </Text>
-                        ))}
-                        <Text style={s.body}>
-                          Existing vacancy: {details.isVacancy ? 'yes' : 'no'} · AI screening:{' '}
-                          {details.usesAiScreening ? 'yes' : 'no'}
-                        </Text>
-                      </>
-                    )}
-                    {!canApply && (
-                      <Text style={s.body}>
-                        Profile review or eligibility requirements are not yet satisfied for this
-                        job. Approval cannot be granted in this app.
-                      </Text>
-                    )}
-                  </View>
-                </SwipeCard>
-                <View style={s.row}>
-                  <Button
-                    secondary
-                    disabled={busy || !passed.length}
-                    label="Undo last pass"
-                    onPress={() => void undoPass()}
-                  />
-                  <Button secondary disabled={busy} label="Pass" onPress={() => void pass(job)} />
-                </View>
-                <Button
-                  disabled={busy || !canApply}
-                  label={canApply ? 'Apply to this job' : 'Application checks pending'}
-                  onPress={() => {
-                    void mutate(`/jobs/${job.id}/apply`, 'Application received by the server.');
-                  }}
+                />
+                <DeckButtons
+                  actions={[
+                    {
+                      label: 'Undo last pass',
+                      glyph: '↶',
+                      color: '#B8901C',
+                      disabled: busy || !passed.length,
+                      onPress: () => void undoPass(),
+                    },
+                    {
+                      label: 'Pass',
+                      glyph: '✕',
+                      color: '#D2584A',
+                      big: true,
+                      disabled: busy,
+                      onPress: () => void pass(job),
+                    },
+                    {
+                      label: canApply ? 'Apply to this job' : 'Application checks pending',
+                      glyph: '✓',
+                      color: '#2E8B57',
+                      big: true,
+                      disabled: busy || !canApply,
+                      onPress: () => void apply(job),
+                    },
+                  ]}
                 />
               </>
             );

@@ -180,7 +180,7 @@ test('vertical drag scrolls instead of swiping', async ({ page }) => {
 test('demo deck swipes', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('[data-ready="true"]')).toBeVisible();
-  const first = await page.locator('.candidate-id').first().innerText();
+  const first = await page.locator('.swipe-card .deck-name').innerText();
   await drag(page, -220);
-  await expect(page.locator('.candidate-id').first()).not.toHaveText(first);
+  await expect(page.locator('.swipe-card .deck-name')).not.toHaveText(first);
 });
