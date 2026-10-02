@@ -2,7 +2,7 @@
 
 TypeScript monorepo for a blind, swipe-based hiring marketplace for students and entry-level workers in Waterloo and the GTA.
 
-Status: connected development build. Next.js employer and Expo candidate apps now support sign-in, private profile drafts, job publishing, persisted applications and mutual matches through shared PostgreSQL workflows. Interview scheduling is being integrated. A separate fictional walkthrough remains available without credentials. No hosted service account or public deployment has been created.
+Status: connected development build. Next.js employer and Expo candidate apps now support sign-in, private profile drafts, job publishing, persisted applications and mutual matches through shared PostgreSQL workflows. Interview scheduling is being integrated. A separate fictional walkthrough remains available without credentials. A fictional-data staging deployment exists; see [hosted staging](docs/11-connected-development.md#hosted-staging). There is no public launch.
 
 “first.” is a temporary demo label, not a finalized product name.
 

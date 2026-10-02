@@ -18,3 +18,5 @@ apps/mobile/ios/
 apps/mobile/android/
 
 dist-connected/
+.vercel
+.staging/

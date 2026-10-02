@@ -4,3 +4,4 @@ dist-native/
 dist-live/
 test-results/
 dist-connected/
+.vercel

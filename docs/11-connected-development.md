@@ -29,3 +29,23 @@ The product requires pay information and limits annual-equivalent range width fo
 ## Provider limitations
 
 A configured Supabase project is needed for hosted authentication and PostgREST. Local protocol tests can exercise route behavior and real PostgreSQL authorization without claiming hosted provider validation. The live screens currently support profile drafts, jobs, apply, employer interest, matches, applications and withdrawal. Calls, resume files, reveal emails, notifications and public deployment are separate integrations; the synthetic interview/reveal walkthrough does not make them live.
+
+## Hosted staging
+
+October 1, 2026. Fictional accounts only; not a public launch.
+
+| Piece | Location |
+|---|---|
+| Employer app (Next.js) | https://swipe-hire-web.vercel.app — Vercel project `swipe-hire-web`, root `apps/web` |
+| Candidate app (Expo web export) | https://swipe-hire-candidate.vercel.app — Vercel project `swipe-hire-candidate`, root `apps/mobile`, SPA fallback in `apps/mobile/vercel.json` |
+| Database/Auth | Supabase free project `ifakmwzewuhhqjusdbdc` (ca-central-1), provisioned through the Vercel Marketplace and connected to `swipe-hire-web` |
+
+Setup performed: all five migrations applied in order as `postgres`; PostgREST exposes `public, graphql_public, app` via `alter role authenticator set pgrst.db_schemas` (`private`, `ops`, `review` stay unexposed — verified). After applying a migration, run `notify pgrst, 'reload schema';` or new RPCs return `PGRST202`.
+
+Hosted Auth rejects reserved domains and the default mailer does not deliver confirmations, so self-service signup cannot complete on staging until custom SMTP and the Auth site URL/redirect (`https://swipe-hire-web.vercel.app/auth/confirm`) are configured in the Supabase dashboard. Instead, `scripts/staging.mjs` (operator machine only, `@example.com` only, refuses a mismatched project) creates pre-confirmed users with the Admin API, then provisions roles through `app.ensure_account` using the user's own session. It also writes synthetic `synthetic-v1` eligibility, which has no collection path yet, and creates individual reviewer logins for `scripts/review.mjs`. Both scripts verify database TLS against Supabase's CA (`sslmode=verify-full`).
+
+Operator settings live in the gitignored `.staging/.env.staging` (`set -a; source .staging/.env.staging; set +a`). Deploys run from the repository root: `vercel deploy --prod` for the employer app; for the candidate app set `VERCEL_PROJECT_ID` to `swipe-hire-candidate`'s ID. Expo public settings are build-time; redeploy after changing them.
+
+Verified on staging over real HTTP: employer cookie sign-in → organization → reviewer verification → job publish; candidate Bearer session from the candidate origin → profile draft → reviewer proposal → candidate approval → apply → employer interest → **Matched**. Cross-origin cookie mutations return `ORIGIN_DENIED`; CORS allows only the candidate origin. Browser UI sign-in on staging has not been exercised by automation.
+
+Known staging caveats: the Marketplace integration also injects secret/service-role and Postgres variables into the `swipe-hire-web` runtime; the app never reads them, but removing them from that project would narrow exposure. Password recovery depends on the same unconfigured mailer.

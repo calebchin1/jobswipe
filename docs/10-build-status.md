@@ -1,6 +1,6 @@
 # Implementation status
 
-September 29, 2026. This is a connected development build, not a production-complete marketplace. Work uses fictional accounts and isolated databases. No public deployment, real hiring messages or paid service account has been created.
+September 29, 2026. This is a connected development build, not a production-complete marketplace. Work uses fictional accounts and isolated databases. A free-tier hosted staging environment exists (see [connected development](11-connected-development.md#hosted-staging)); no public launch, real hiring messages or paid service account has been created.
 
 ## Implemented
 

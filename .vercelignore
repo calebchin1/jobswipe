@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/.expo
+**/.turbo
+**/dist
+**/dist-*
+**/test-results
+**/playwright-report
+**/coverage
+**/*.tsbuildinfo
+**/.env*
+!**/.env.example
+apps/mobile/ios
+apps/mobile/android
