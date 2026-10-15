@@ -7,6 +7,7 @@ import {
   CandidateProfileSchema,
   LiveJobSchema,
   LiveApplicationSchema,
+  CandidateEligibilitySchema,
 } from '@swipe/contracts';
 import { CallAccessSchema } from './calls';
 export { createAudioSession, livekitConfig, closeCancelledCalls } from './calls';
@@ -149,6 +150,8 @@ export async function authenticatedRpc(
 }
 
 export const workflows = {
+  candidateEligibility: 'get_candidate_eligibility',
+  attestEligibility: 'attest_candidate_eligibility',
   approveProfileProposal: 'approve_profile_proposal',
   interviewCallAccess: 'get_interview_call_access',
   cancelledCallRooms: 'get_cancelled_call_rooms',
@@ -196,6 +199,8 @@ const CandidateRow = z
     education_level: z.string(),
     field: z.string(),
     study_status: z.string(),
+    school: z.string().nullable().optional(),
+    hours_per_week: z.number().int().min(0).max(60).nullable().optional(),
     bullets: z.array(z.string()),
     skills: z.array(z.string()),
     applied: z.boolean(),
@@ -204,7 +209,13 @@ const CandidateRow = z
     cardRef: row.card_id,
     handle: row.handle,
     headline: row.headline,
-    education: { level: row.education_level, field: row.field, status: row.study_status },
+    education: {
+      level: row.education_level,
+      field: row.field,
+      status: row.study_status,
+      ...(row.school == null ? {} : { school: row.school }),
+    },
+    ...(row.hours_per_week == null ? {} : { hoursPerWeek: row.hours_per_week }),
     bullets: row.bullets,
     skills: row.skills,
     applied: row.applied,
@@ -227,15 +238,22 @@ const IdentityRow = z
 export function projectRpcResult(name: Workflow, data: unknown): unknown {
   try {
     switch (name) {
+      case 'get_candidate_eligibility':
+      case 'attest_candidate_eligibility':
+        return CandidateEligibilitySchema.parse(data);
       case 'create_interview_slot':
-      case 'cancel_interview_slot': return InterviewSlotSchema.parse(data);
+      case 'cancel_interview_slot':
+        return InterviewSlotSchema.parse(data);
       case 'list_employer_interview_slots':
-      case 'list_application_interview_slots': return z.array(InterviewSlotSchema).parse(data);
+      case 'list_application_interview_slots':
+        return z.array(InterviewSlotSchema).parse(data);
       case 'book_interview':
-      case 'cancel_interview': return ScheduledInterviewSchema.parse(data);
+      case 'cancel_interview':
+        return ScheduledInterviewSchema.parse(data);
       case 'list_candidate_interviews':
       case 'list_job_interviews':
-      case 'list_application_interviews': return z.array(ScheduledInterviewSchema).parse(data);
+      case 'list_application_interviews':
+        return z.array(ScheduledInterviewSchema).parse(data);
       case 'ensure_account':
       case 'get_account_context':
         return AccountContextSchema.parse(data);
@@ -245,8 +263,10 @@ export function projectRpcResult(name: Workflow, data: unknown): unknown {
       case 'list_my_applications':
       case 'list_job_applications':
         return z.array(LiveApplicationSchema).parse(data);
-      case 'get_cancelled_call_rooms': return z.array(z.uuid()).parse(data);
-      case 'get_interview_call_access': return CallAccessSchema.parse(data);
+      case 'get_cancelled_call_rooms':
+        return z.array(z.uuid()).parse(data);
+      case 'get_interview_call_access':
+        return CallAccessSchema.parse(data);
       case 'approve_profile_proposal':
       case 'get_candidate_profile':
       case 'save_candidate_profile':

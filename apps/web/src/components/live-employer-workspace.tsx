@@ -813,6 +813,7 @@ export function LiveEmployerWorkspace() {
                                     label: 'Undo last pass',
                                     glyph: '↶',
                                     tone: 'undo',
+                                    caption: 'Undo',
                                     disabled: !!busy || !passed.length,
                                     onClick: undoPass,
                                   },
@@ -820,6 +821,7 @@ export function LiveEmployerWorkspace() {
                                     label: 'Pass',
                                     glyph: '✕',
                                     tone: 'pass',
+                                    caption: 'Pass',
                                     big: true,
                                     disabled: !!busy,
                                     onClick: () => pass(candidates[0]),
@@ -828,6 +830,7 @@ export function LiveEmployerWorkspace() {
                                     label: 'I’m interested',
                                     glyph: '✓',
                                     tone: 'like',
+                                    caption: 'Interested',
                                     big: true,
                                     disabled: !!busy,
                                     onClick: () => interest(candidates[0]),
@@ -838,8 +841,7 @@ export function LiveEmployerWorkspace() {
                           )}
                           <p className="live-small-note">
                             These are approved anonymous profiles from your authenticated workspace.
-                            Name, contact details, age, school, and private documents aren’t
-                            included.
+                            Name, contact details, age, and private documents aren’t included.
                           </p>
                         </>
                       ) : (
@@ -1442,25 +1444,11 @@ function toDeckCard(card: LiveCandidateCard): DeckCardContent {
     monogram: '✳',
     name: card.handle,
     headline: card.headline,
-    meta: `${card.education.level} · ${card.education.field} · ${card.education.status}`,
-    chips: card.skills,
+    school: card.education.school || 'School not provided',
+    degree: `${card.education.level} in ${card.education.field}`,
+    availability: card.hoursPerWeek == null ? 'Not provided' : String(card.hoursPerWeek),
+    skills: card.skills,
     badge: card.applied ? 'Applied to your role' : 'Open to opportunities',
-    details: (
-      <>
-        <h4>What they bring</h4>
-        {card.bullets.length ? (
-          <ul>
-            {card.bullets.map((bullet, index) => (
-              <li key={index}>{bullet}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No experience bullets yet.</p>
-        )}
-        <h4>Skills</h4>
-        <p>{card.skills.join(' · ')}</p>
-        <p>Identity protected · approved profile</p>
-      </>
-    ),
+    evidence: card.bullets,
   };
 }

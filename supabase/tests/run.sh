@@ -29,7 +29,7 @@ python3 - "$root" "$tmp" "$auth_role" "$anon_role" "$review_role" "$operator_rol
 from pathlib import Path
 import re, sys
 root, target, authenticated, anon, reviewer, operator = sys.argv[1:]
-for path in [*sorted(Path(root, 'supabase/migrations').glob('*.sql')), Path(root,'supabase/tests/security.sql'), Path(root,'supabase/tests/onboarding.sql'), Path(root,'supabase/tests/scheduling.sql'), Path(root,'supabase/tests/review.sql'), Path(root,'supabase/tests/audio.sql'), Path(root,'supabase/tests/swipe.sql')]:
+for path in [*sorted(Path(root, 'supabase/migrations').glob('*.sql')), *[Path(root, 'supabase/tests', name + '.sql') for name in ['security','onboarding','scheduling','review','audio','swipe','eligibility','card_education']]]:
     sql = path.read_text()
     sql = re.sub(r'\bauthenticated\b', authenticated, sql)
     sql = re.sub(r'\banon\b', anon, sql)
@@ -125,3 +125,9 @@ printf 'Blind audio entitlement and anonymous participant assertions passed.\n'
 
 psql -X -v ON_ERROR_STOP=1 -q -f "$tmp/swipe.sql" >"$tmp/swipe.log" 2>&1 || { cat "$tmp/swipe.log"; exit 1; }
 printf 'Swipe pass/undo authorization and deck filtering assertions passed.\n'
+
+psql -X -v ON_ERROR_STOP=1 -q -f "$tmp/eligibility.sql" >"$tmp/eligibility.log" 2>&1 || { cat "$tmp/eligibility.log"; exit 1; }
+printf 'Adult pilot attestation, privacy and application gate assertions passed.\n'
+
+psql -X -v ON_ERROR_STOP=1 -q -f "$tmp/card_education.sql" >"$tmp/card-education.log" 2>&1 || { cat "$tmp/card-education.log"; exit 1; }
+printf 'Candidate-approved school and availability assertions passed.\n'

@@ -60,6 +60,8 @@ export async function startTestBackend({ port = 0, accessTokenLifetimeSeconds = 
 
   // Trusted names/types only. Request values are always PostgreSQL parameters.
   const rpc = {
+    get_candidate_eligibility: [],
+    attest_candidate_eligibility: [['p_adult', 'boolean'], ['p_authorized_to_work', 'boolean'], ['p_policy_version', 'text']],
     get_interview_call_access: [['p_interview', 'uuid']],
     approve_profile_proposal: [['p_proposal', 'uuid']],
     create_interview_slot: [

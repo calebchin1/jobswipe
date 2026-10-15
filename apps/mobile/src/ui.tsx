@@ -4,17 +4,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDemo } from './demo';
 export const colors = {
   ink: '#243F37',
-  muted: '#69796E',
+  muted: '#596B60',
   paper: '#F7F8F2',
   green: '#295C46',
   line: '#DDE3D7',
   pale: '#E6EDDF',
+  gold: '#896914',
+  red: '#A4483C',
+  blue: '#326992',
 };
-export function Screen({ children }: { children: React.ReactNode }) {
+export function Screen({
+  children,
+  compact = false,
+}: {
+  children: React.ReactNode;
+  compact?: boolean;
+}) {
   const { notice } = useDemo();
   return (
     <SafeAreaView style={s.safe} edges={['top', 'left', 'right']}>
-      <ScrollView contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[s.screen, compact && { padding: 16, gap: 12 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={s.brandRow}>
           <Text style={s.brand}>
             first.<Text style={{ color: '#799768' }}>↗</Text>
@@ -22,12 +35,16 @@ export function Screen({ children }: { children: React.ReactNode }) {
           <Text style={s.demo}>FICTIONAL DEMO</Text>
         </View>
         {children}
-        <Text accessibilityLiveRegion="polite" style={s.notice}>
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[s.notice, compact && !notice && { minHeight: 0 }]}
+        >
           {notice}
         </Text>
         <Text style={s.footer}>
-          A local prototype. No real applications, accounts, calls, or identity sharing. Changes
-          reset on reload.
+          {compact
+            ? 'Fictional demo · No real applications · Resets on reload'
+            : 'A local prototype. No real applications, accounts, calls, or identity sharing. Changes reset on reload.'}
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -102,24 +119,30 @@ export const s = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
   brand: { fontSize: 27, fontWeight: '800', letterSpacing: -1, color: colors.ink },
-  demo: { fontSize: 9, fontWeight: '800', letterSpacing: 1, color: colors.muted },
+  demo: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, color: colors.muted },
   heading: { gap: 8, marginTop: 10 },
-  eyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 2, color: colors.green },
+  eyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.green },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     lineHeight: 40,
     fontWeight: '700',
-    letterSpacing: -1.4,
+    letterSpacing: -1,
     color: colors.ink,
   },
   subtitle: { fontSize: 15, lineHeight: 22, color: colors.muted },
+  context: { fontSize: 12, lineHeight: 18, color: colors.muted },
+  progressLabel: { fontSize: 12, fontWeight: '600', color: colors.green },
+  progressTrack: { height: 5, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: colors.green, borderRadius: 3 },
   panel: {
     padding: 22,
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.line,
     gap: 12,

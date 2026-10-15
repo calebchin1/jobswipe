@@ -30,6 +30,8 @@ export const ProfileDraftSchema = z
     educationLevel: z.string().trim().min(1).max(80),
     field: z.string().trim().min(1).max(80),
     studyStatus: z.string().trim().min(1).max(40),
+    school: z.string().trim().min(1).max(120).optional(),
+    hoursPerWeek: z.number().int().min(0).max(60).optional(),
     bullets: z.array(z.string().trim().min(1).max(140)).max(3),
     skills: z.array(z.string().trim().min(1).max(60)).min(1).max(8),
   })
@@ -186,7 +188,13 @@ export const LiveCandidateCardSchema = z.object({
   cardRef: z.uuid(),
   handle: z.string(),
   headline: z.string(),
-  education: z.object({ level: z.string(), field: z.string(), status: z.string() }),
+  education: z.object({
+    level: z.string(),
+    field: z.string(),
+    status: z.string(),
+    school: z.string().optional(),
+  }),
+  hoursPerWeek: z.number().int().min(0).max(60).optional(),
   bullets: z.array(z.string()),
   skills: z.array(z.string()),
   applied: z.boolean(),

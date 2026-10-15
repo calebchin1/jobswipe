@@ -67,6 +67,8 @@ The September 28, 2026 product plan is the source of product intent. The subsequ
 
 **Start with the [roadmap](docs/12-roadmap.md)**: current state and the next shippable steps for each side.
 
+The October 13 backend slice adds private adults-only pilot onboarding and a local review console (`npm run review`). See [backend setup, required accounts and deployment handoff](docs/13-backend-setup.md).
+
 Next integrations: trusted profile/business review, private eligibility, verified audio interviews, protected documents and reliable notifications. Production identity sharing still requires reviewed privacy policies, real interview evidence and protected document delivery.
 
 ## Planning conventions

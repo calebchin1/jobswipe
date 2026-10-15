@@ -131,12 +131,17 @@ export const demoCandidates = [
   {
     id: 'candidate-a7f2',
     handle: 'Candidate A7F2',
-    headline: 'Math student who makes complicated things feel simple',
-    education: { level: 'Bachelor’s', field: 'Mathematics', status: 'Year 2' },
+    headline: 'Peer tutor for 12 students | Café team member',
+    education: {
+      level: 'Bachelor’s',
+      field: 'Mathematics',
+      status: 'Year 2',
+      school: 'University of Waterloo',
+    },
     bullets: [
-      'Helped 12 classmates prepare for exams through weekly study sessions.',
-      'Served 60+ guests per shift while keeping orders accurate.',
-      'Coordinated a student fundraiser that raised $1,200.',
+      'Tutored 12 classmates in weekly exam-prep sessions.',
+      'Served 60+ guests per shift with accurate orders.',
+      'Raised $1,200 by coordinating a student fundraiser.',
     ],
     skills: ['Customer service', 'Math', 'Teamwork', 'Communication'],
     availability: { hoursPerWeek: 18, days: ['Mon', 'Tue', 'Thu', 'Sat'] },
@@ -147,8 +152,13 @@ export const demoCandidates = [
   {
     id: 'candidate-k3m8',
     handle: 'Candidate K3M8',
-    headline: 'An organized teammate with a welcoming approach',
-    education: { level: 'Diploma', field: 'Business', status: 'Year 1' },
+    headline: 'Retail teammate | Managed inventory across 200+ products',
+    education: {
+      level: 'Diploma',
+      field: 'Business',
+      status: 'Year 1',
+      school: 'Conestoga College',
+    },
     bullets: [
       'Kept inventory accurate across 200+ products at a small store.',
       'Helped onboard three new volunteers for a community event.',
@@ -163,8 +173,13 @@ export const demoCandidates = [
   {
     id: 'candidate-r9c1',
     handle: 'Candidate R9C1',
-    headline: 'Curious designer and dependable weekend teammate',
-    education: { level: 'Bachelor’s', field: 'Design', status: 'Year 3' },
+    headline: 'Design student | Built a signup flow for 80 volunteers',
+    education: {
+      level: 'Bachelor’s',
+      field: 'Design',
+      status: 'Year 3',
+      school: 'Wilfrid Laurier University',
+    },
     bullets: [
       'Designed a volunteer signup flow used by 80 participants.',
       'Worked with a four-person team to deliver a term project early.',

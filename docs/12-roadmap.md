@@ -4,6 +4,8 @@ October 2, 2026. The short version of [the implementation plan](08-implementatio
 
 ## Where it stands
 
+October 14 update: the build includes an adults-only pilot attestation API/form and a loopback operator review console. The user explicitly selected the 18+ first pilot. Migration 007 is installed on existing staging; local LiveKit/Supabase credentials and the existing reviewer login are verified. Matching Vercel deployments, email delivery and two-party microphone verification remain outstanding; see [backend setup and handoff](13-backend-setup.md). The hosted application status below predates this slice.
+
 A verified employer and an approved candidate can find each other by swiping on a phone, match, and book an interview, on [hosted staging](11-connected-development.md#hosted-staging) with fictional accounts. Three things stop a real person from using it: sign-up emails don't send, candidates have no way to declare eligibility, and approvals happen in a command-line tool.
 
 ## Both sides: unblock real sign-ups
@@ -11,7 +13,7 @@ A verified employer and an approved candidate can find each other by swiping on 
 | # | Step | Ships when | Notes |
 |---|---|---|---|
 | 0 | **Auth email on staging.** Custom SMTP, site URL and `/auth/confirm` redirect in the Supabase dashboard. | A new address can sign up and reset a password on staging. | Dashboard-only, no code. Blocks every real sign-up and password reset. |
-| 1 | **Reviewer web page** replacing `scripts/review.mjs`: pending employers → verify; pending profiles → propose. Same `review.*` functions, operator login only. | An operator approves a company and a profile without a terminal. | P09, P11. Not exposed to employers or candidates. |
+| 1 | **Reviewer web page:** local loopback console built; run `npm run review` with an individual reviewer login. Same `review.*` functions, operator access only. | Connect the operator credential and exercise the staging queue. | P09, P11. Local console; never expose its database credential in the public app. |
 
 ## Employer (web, phone-friendly)
 
@@ -31,7 +33,7 @@ A verified employer and an approved candidate can find each other by swiping on 
 
 | # | Next | Ships when | Ticket |
 |---|---|---|---|
-| C1 | **Eligibility step.** No way exists to provide it today, so no real candidate can apply. Smallest version: an adult-only pilot attestation (18+, legally able to work in Ontario). | A new candidate can become apply-ready without SQL. | P11 (needs decision D05) |
+| C1 | **Eligibility step built locally.** Private adult/work declarations, 90-day renewal, API and candidate form. | Apply migration 007 and deploy the candidate/API build; verify the staging onboarding flow. | P11. D05 adult-only pilot accepted. Profile approval remains separate. |
 | C2 | **Real-phone build.** Development build on one iPhone and one Android; check swipe feel, sessions and microphone permission. | Both devices sign in, swipe, apply and withdraw. | P29, P02 |
 | C3 | **Match notification.** Push or email when an employer matches you. | A candidate learns of a match without opening the app. | P17 (needs step 0) |
 
@@ -41,7 +43,7 @@ A verified employer and an approved candidate can find each other by swiping on 
 
 | Blocks | Decision |
 |---|---|
-| C1 | D05: adult-only pilot first, or support 14–17 from day one (needs age-collection design). |
+| Later minor support | D05 adult-only first pilot accepted; minors need a separate collection design before expansion. |
 | P21 | Create a LiveKit project (free tier) for real audio interviews. |
 | P23 | Final identity-sharing consent text; `synthetic-v1` is a placeholder. |
 | P24 | D08: whether school name is revealed after the interview. |

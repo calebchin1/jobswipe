@@ -10,6 +10,7 @@ import {
 } from '@swipe/domain';
 import { JobSchema, type DemoAction, type DemoState } from '@swipe/contracts';
 import { DeckStack, MatchOverlay, RoundButtons } from './deck';
+import styles from './employer-workspace.module.css';
 
 type View = 'discover' | 'pipeline' | 'interviews' | 'jobs';
 type Stage = 'Matched' | 'Interview booked' | 'Interviewed' | 'Revealed';
@@ -17,6 +18,7 @@ type Candidate = {
   id: string;
   headline: string;
   field: string;
+  school: string;
   skills: string[];
   bullets: string[];
   availability: string;
@@ -27,7 +29,8 @@ const fixture = createDemoState();
 const candidates: Candidate[] = fixture.candidates.map((c) => ({
   id: c.handle.replace('Candidate ', ''),
   headline: c.headline,
-  field: `${c.education.level} · ${c.education.field} · ${c.education.status}`,
+  school: c.education.school ?? 'School not provided',
+  field: `${c.education.level} in ${c.education.field}`,
   skills: c.skills,
   bullets: c.bullets,
   availability: `${c.availability.hoursPerWeek} hours / week`,
@@ -119,6 +122,14 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
 }
 
 export function EmployerWorkspace() {
+  const [mobileLayout, setMobileLayout] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 700px)');
+    const update = () => setMobileLayout(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
   const [view, setView] = useState<View>('discover');
@@ -272,7 +283,12 @@ export function EmployerWorkspace() {
     setNotice('Job saved in this demo session. No posting was published.');
   }
   return (
-    <div className="app-shell" inert={!ready} data-ready={ready}>
+    <div
+      className={`app-shell ${styles.workspace}`}
+      inert={!ready}
+      data-ready={ready}
+      data-view={view}
+    >
       <a className="skip-link" href="#main">
         Skip to workspace
       </a>
@@ -354,27 +370,34 @@ export function EmployerWorkspace() {
             </strong>
           </div>
           <div className="topbar-actions">
-            <a href="/sign-in" className="live-auth-link">
-              Sign in to live workspace ↗
-            </a>
-            <button
-              className="reset-demo"
-              onClick={() => {
-                setState(createDemoState());
-                setIndex(0);
-                setScores({});
-                setSelected('A7F2');
-                setUndo(null);
-                setUndoUsed(false);
-                setApplicantsOnly(false);
-                setView('discover');
-                setJob(initialJob);
-                setEditingJob(false);
-                setNotice('Demo reset. All changes in this session have been cleared.');
-              }}
-            >
-              Reset demo
-            </button>
+            <details className="workspace-options" open={!mobileLayout}>
+              <summary aria-label="Workspace options">
+                Options <span aria-hidden="true">⌄</span>
+              </summary>
+              <div className="workspace-options-content">
+                <a href="/sign-in" className="live-auth-link">
+                  Sign in to live workspace ↗
+                </a>
+                <button
+                  className="reset-demo"
+                  onClick={() => {
+                    setState(createDemoState());
+                    setIndex(0);
+                    setScores({});
+                    setSelected('A7F2');
+                    setUndo(null);
+                    setUndoUsed(false);
+                    setApplicantsOnly(false);
+                    setView('discover');
+                    setJob(initialJob);
+                    setEditingJob(false);
+                    setNotice('Demo reset. All changes in this session have been cleared.');
+                  }}
+                >
+                  Reset demo
+                </button>
+              </div>
+            </details>
             <span className="demo-badge">
               <span />
               Synthetic demo
@@ -394,45 +417,44 @@ export function EmployerWorkspace() {
           onClose={() => setMatchWith('')}
         />
         <main id="main">
-          <div className="page-heading">
-            <div>
-              <div className="eyebrow">GOOD PEOPLE. GREAT POSSIBILITIES.</div>
-              <h1>
-                {view === 'discover'
-                  ? 'Your next great teammate.'
-                  : view === 'pipeline'
+          {view !== 'discover' && (
+            <div className="page-heading">
+              <div>
+                <div className="eyebrow">GOOD PEOPLE. GREAT POSSIBILITIES.</div>
+                <h1>
+                  {view === 'pipeline'
                     ? 'From first match to next step.'
                     : view === 'interviews'
                       ? 'Let their experience speak.'
                       : 'Make a great first impression.'}
-              </h1>
-              <p>
-                {view === 'discover'
-                  ? 'Meet people for what they bring. Everything else can wait.'
-                  : view === 'pipeline'
+                </h1>
+                <p>
+                  {view === 'pipeline'
                     ? 'A thoughtful process, one conversation at a time.'
                     : view === 'interviews'
                       ? 'Structured questions. An open mind. A better first conversation.'
                       : 'Clear expectations help the right people find you.'}
-              </p>
+                </p>
+              </div>
+              <button
+                className="button secondary new-job"
+                onClick={() => {
+                  navigate('jobs');
+                  setEditingJob(true);
+                }}
+              >
+                <Icon name="jobs" size={17} />
+                Edit demo job
+              </button>
             </div>
-            <button
-              className="button secondary new-job"
-              onClick={() => {
-                navigate('jobs');
-                setEditingJob(true);
-              }}
-            >
-              <Icon name="jobs" size={17} />
-              Edit demo job
-            </button>
-          </div>
+          )}
           <div className="demo-notice">
             <Icon name="lock" size={16} />
-            <span>
+            <span className="demo-notice-full">
               Fictional profiles only. Changes last until refresh. No live authentication, calls,
               email, or publishing.
             </span>
+            <span className="demo-notice-compact">Fictional demo · Changes reset on refresh</span>
           </div>
           {notice && (
             <div className="notice" role="status">
@@ -480,6 +502,16 @@ export function EmployerWorkspace() {
                       Applicants only
                     </label>
                   </div>
+                  <div className="review-progress">
+                    <span>
+                      {Math.min(index, deck.length)} of {deck.length} profiles reviewed in this view
+                    </span>
+                    <progress
+                      aria-label="Shortlist review progress"
+                      value={Math.min(index, deck.length)}
+                      max={Math.max(1, deck.length)}
+                    />
+                  </div>
                   {candidate ? (
                     <DeckStack
                       cards={deck.slice(index, index + 2).map((item) => ({
@@ -487,17 +519,14 @@ export function EmployerWorkspace() {
                         monogram: '✳',
                         name: `Candidate ${item.id}`,
                         headline: item.headline,
-                        meta: item.field,
-                        chips: [item.availability, item.commute, ...item.skills],
+                        school: item.school,
+                        degree: item.field,
+                        availability: item.availability.replace(' hours / week', ''),
+                        skills: item.skills,
                         badge: item.applied ? '↗ Applied to your job' : 'Open to opportunities',
+                        evidence: item.bullets,
                         details: (
                           <>
-                            <h4>What they bring</h4>
-                            <ul>
-                              {item.bullets.map((bullet) => (
-                                <li key={bullet}>{bullet}</li>
-                              ))}
-                            </ul>
                             {item.id === candidate.id && fit && (
                               <>
                                 <h4>Why this candidate?</h4>
@@ -508,11 +537,6 @@ export function EmployerWorkspace() {
                                 </ul>
                               </>
                             )}
-                            <h4>Availability</h4>
-                            <p>
-                              {item.availability} · {item.commute}
-                            </p>
-                            <p>Identity protected</p>
                           </>
                         ),
                       }))}
@@ -537,6 +561,7 @@ export function EmployerWorkspace() {
                         label: 'Undo last pass or unmatched interest once per session',
                         glyph: '↶',
                         tone: 'undo',
+                        caption: 'Undo once',
                         disabled: !undo || undoUsed,
                         onClick: () => {
                           if (undo) {
@@ -554,6 +579,7 @@ export function EmployerWorkspace() {
                         label: 'Pass for now',
                         glyph: '✕',
                         tone: 'pass',
+                        caption: 'Pass',
                         big: true,
                         disabled: !candidate,
                         onClick: () => swipe(false),
@@ -562,6 +588,7 @@ export function EmployerWorkspace() {
                         label: 'I’m interested',
                         glyph: '✓',
                         tone: 'like',
+                        caption: 'Interested',
                         big: true,
                         disabled: !candidate,
                         onClick: () => swipe(true),
@@ -574,6 +601,22 @@ export function EmployerWorkspace() {
                   </p>
                 </section>
                 <aside className="insights">
+                  <section className="next-step-card">
+                    <span className="small-label">YOUR NEXT STEP</span>
+                    <h2>
+                      {matched
+                        ? `${matched} mutual ${matched === 1 ? 'match' : 'matches'}.`
+                        : 'Find your first connection.'}
+                    </h2>
+                    <p>
+                      {matched
+                        ? 'Your matches are ready for a conversation. Take the next step in your pipeline.'
+                        : 'Review their skills. If you’re both interested, they’ll appear in your pipeline.'}
+                    </p>
+                    <button className="button primary" onClick={() => navigate('pipeline')}>
+                      Open your pipeline <Icon name="arrow" size={17} />
+                    </button>
+                  </section>
                   <section className="how-card">
                     <span className="small-label">A DIFFERENT FIRST IMPRESSION</span>
                     <h2>
@@ -615,7 +658,7 @@ export function EmployerWorkspace() {
                       <span>THIS SESSION</span>
                     </div>
                     <div className="stat-row">
-                      <span>Profiles reviewed</span>
+                      <span>Reviewed in this view</span>
                       <strong>{index}</strong>
                     </div>
                     <div className="stat-row">
@@ -630,7 +673,7 @@ export function EmployerWorkspace() {
                     </div>
                   </section>
                   <p className="privacy-footnote">
-                    No names. No photos. No school names.
+                    No names. No photos. Education shared with approval.
                     <br />
                     Just the things that matter for the role.
                   </p>

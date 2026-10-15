@@ -13,6 +13,9 @@ describe('connected write boundaries',()=>{
  it('does not accept profile publication or private identity in draft writes',()=>{
   const profile={headline:'Ready to learn',educationLevel:'Secondary',field:'General',studyStatus:'Studying',bullets:[],skills:['Organization']};
   expect(ProfileDraftSchema.safeParse(profile).success).toBe(true);
+  expect(ProfileDraftSchema.safeParse({...profile,school:'Example University',hoursPerWeek:18}).success).toBe(true);
+  for (const hoursPerWeek of [-1,61,1.5,'18',null]) expect(ProfileDraftSchema.safeParse({...profile,hoursPerWeek}).success).toBe(false);
+  expect(ProfileDraftSchema.safeParse({...profile,school:''}).success).toBe(false);
   expect(ProfileDraftSchema.safeParse({...profile,approved:true}).success).toBe(false);
   expect(ProfileDraftSchema.safeParse({...profile,dateOfBirth:'2008-01-01'}).success).toBe(false);
  });

@@ -98,6 +98,103 @@ export async function runReviewCommand(argv, environment = process.env) {
       types = ['uuid', 'integer', 'jsonb', 'text'];
     } else fail('UNKNOWN_COMMAND');
   }
+  return executeReviewQuery(functionName, parameters, types, environment);
+}
+
+const functions = Object.freeze({
+  list_pending_employers: [],
+  list_pending_profiles: [],
+  get_candidate_draft: ['uuid'],
+  verify_employer: ['uuid', 'text', 'text'],
+  propose_candidate_profile: ['uuid', 'integer', 'jsonb', 'text'],
+});
+
+/** Structured entrypoint for the loopback review console; credentials stay on the server. */
+export async function runReviewOperation(input, environment = process.env, Client = pg.Client) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) fail('INVALID_ARGUMENTS');
+  const { action } = input;
+  const expected = {
+    'pending-employers': ['action'],
+    'pending-profiles': ['action'],
+    'show-profile': ['action', 'candidateId'],
+    'verify-employer': ['action', 'employerId', 'website', 'note'],
+    'propose-profile': ['action', 'candidateId', 'revision', 'content', 'note'],
+  }[action];
+  if (
+    !expected ||
+    Object.keys(input).length !== expected.length ||
+    Object.keys(input).some((key) => !expected.includes(key))
+  )
+    fail('INVALID_ARGUMENTS');
+  const note = typeof input.note === 'string' ? input.note.trim() : '';
+  if (action === 'pending-employers')
+    return executeReviewQuery('list_pending_employers', [], [], environment, Client);
+  if (action === 'pending-profiles')
+    return executeReviewQuery('list_pending_profiles', [], [], environment, Client);
+  if (!uuid.test(input.candidateId ?? input.employerId ?? '')) fail('VALID_UUID_REQUIRED');
+  if (action === 'show-profile')
+    return executeReviewQuery(
+      'get_candidate_draft',
+      [input.candidateId],
+      ['uuid'],
+      environment,
+      Client,
+    );
+  if (!note || note.length > 1000) fail('NOTE_MUST_BE_1_TO_1000_CHARACTERS');
+  if (action === 'verify-employer') {
+    let website;
+    try {
+      website = new URL(input.website);
+    } catch {
+      fail('INVALID_WEBSITE');
+    }
+    if (
+      !['http:', 'https:'].includes(website.protocol) ||
+      website.username ||
+      website.password ||
+      input.website.length > 2000
+    )
+      fail('INVALID_WEBSITE');
+    return executeReviewQuery(
+      'verify_employer',
+      [input.employerId, input.website, note],
+      ['uuid', 'text', 'text'],
+      environment,
+      Client,
+    );
+  }
+  if (!Number.isSafeInteger(input.revision) || input.revision < 1) fail('INVALID_REVISION');
+  const content = JSON.stringify(input.content);
+  if (
+    !content ||
+    input.content === null ||
+    typeof input.content !== 'object' ||
+    Array.isArray(input.content) ||
+    Buffer.byteLength(content) > 16000
+  )
+    fail('PROFILE_FILE_TOO_LARGE');
+  return executeReviewQuery(
+    'propose_candidate_profile',
+    [input.candidateId, input.revision, content, note],
+    ['uuid', 'integer', 'jsonb', 'text'],
+    environment,
+    Client,
+  );
+}
+
+async function executeReviewQuery(
+  functionName,
+  parameters,
+  types,
+  environment,
+  Client = pg.Client,
+) {
+  if (
+    !Object.hasOwn(functions, functionName) ||
+    JSON.stringify(types) !== JSON.stringify(functions[functionName]) ||
+    parameters.length !== types.length
+  )
+    fail('INVALID_ARGUMENTS');
   if (!environment.SWIPE_REVIEW_DATABASE_URL) fail('DEDICATED_OPERATOR_DATABASE_URL_REQUIRED');
   let url;
   try {
@@ -111,7 +208,7 @@ export async function runReviewCommand(argv, environment = process.env) {
     (!url.hostname && url.searchParams.get('host')?.startsWith('/'));
   if (!local && url.searchParams.get('sslmode') !== 'verify-full')
     fail('REMOTE_DATABASE_REQUIRES_SSLMODE_VERIFY_FULL');
-  const client = new pg.Client({
+  const client = new Client({
     connectionString: environment.SWIPE_REVIEW_DATABASE_URL,
     connectionTimeoutMillis: 5000,
   });

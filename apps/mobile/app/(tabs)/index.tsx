@@ -2,7 +2,7 @@ import { Link } from 'expo-router';
 import { Text, View } from 'react-native';
 import { jobs, useDemo } from '../../src/demo';
 import { DeckButtons, DeckStack, type DeckCardContent } from '../../src/Deck';
-import { Empty, Screen, s } from '../../src/ui';
+import { colors, Empty, Screen, s } from '../../src/ui';
 
 export default function Discover() {
   const demo = useDemo();
@@ -10,6 +10,7 @@ export default function Discover() {
     (j) => !demo.dismissed.includes(j.id) && !demo.applications.some((a) => a.jobId === j.id),
   );
   const job = available[0];
+  const reviewed = jobs.length - available.length;
   const cards: DeckCardContent[] = available.slice(0, 2).map((item) => ({
     id: item.id,
     monogram: item.monogram,
@@ -23,13 +24,33 @@ export default function Discover() {
         accessibilityLabel={`Read ${item.category} job details`}
         style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14, paddingVertical: 8 }}
       >
-        Meet your next possibility →
+        View job details →
       </Link>
     ),
   }));
   return (
-    <Screen>
-      <Text style={s.body}>{available.length} demo jobs · Waterloo, ON · part-time</Text>
+    <Screen compact>
+      <View style={{ gap: 10 }}>
+        <View style={[s.row, { justifyContent: 'space-between' }]}>
+          <Text accessibilityRole="header" style={s.label}>
+            Discover · Waterloo, ON
+          </Text>
+          <Text style={s.progressLabel}>
+            {reviewed} of {jobs.length} reviewed
+          </Text>
+        </View>
+        <View
+          accessibilityRole="progressbar"
+          accessibilityLabel="Demo jobs reviewed"
+          accessibilityValue={{ min: 0, max: jobs.length, now: reviewed }}
+          style={s.progressTrack}
+        >
+          <View style={[s.progressFill, { width: `${(reviewed / jobs.length) * 100}%` }]} />
+        </View>
+        <Text style={s.context}>
+          {available.length} fictional jobs remaining · No real applications are sent
+        </Text>
+      </View>
       {job ? (
         <>
           <DeckStack
@@ -43,28 +64,29 @@ export default function Discover() {
             actions={[
               {
                 label: 'Undo last pass',
+                caption: 'Undo',
                 glyph: '↶',
-                color: '#B8901C',
+                color: colors.gold,
                 disabled: !demo.canUndo,
                 onPress: demo.undo,
               },
               {
                 label: 'Pass',
                 glyph: '✕',
-                color: '#D2584A',
+                color: colors.red,
                 big: true,
                 onPress: () => demo.pass(job.id),
               },
               {
                 label: demo.saved.includes(job.id) ? 'Unsave' : 'Save',
                 glyph: demo.saved.includes(job.id) ? '★' : '☆',
-                color: '#3E7CB1',
+                color: colors.blue,
                 onPress: () => demo.save(job.id),
               },
               {
                 label: 'Apply',
                 glyph: '✓',
-                color: '#2E8B57',
+                color: colors.green,
                 big: true,
                 onPress: () => demo.apply(job.id),
               },
@@ -82,8 +104,9 @@ export default function Discover() {
               actions={[
                 {
                   label: 'Undo last pass',
+                  caption: 'Undo',
                   glyph: '↶',
-                  color: '#B8901C',
+                  color: colors.gold,
                   disabled: !demo.canUndo,
                   onPress: demo.undo,
                 },
@@ -93,8 +116,7 @@ export default function Discover() {
         </>
       )}
       <Text style={s.footer}>
-        *Commute times are illustrative. Swipe right to apply, left to pass. Your name and contact
-        details stay hidden until an interview and an authorized reveal.
+        Swipe right to apply, left to pass. *Commutes are illustrative. Identity stays protected.
       </Text>
     </Screen>
   );

@@ -1,0 +1,446 @@
+.workspace {
+  --muted: #607064;
+  --line: #e0e6dc;
+  --canvas: #f5f7f2;
+  overflow-x: clip;
+}
+
+.workspace :global(.deck-section),
+.workspace :global(.insights),
+.workspace :global(.page-heading > div),
+.workspace :global(.job-strip-title) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace :global(.sidebar) {
+  background: #fff;
+}
+.workspace :global(.workspace-label),
+.workspace :global(.eyebrow),
+.workspace :global(.small-label) {
+  color: #566c50;
+  font-size: 11px;
+  letter-spacing: 1.3px;
+}
+.workspace :global(.company-switch strong),
+.workspace :global(.account strong) {
+  font-size: 13px;
+}
+.workspace :global(.company-switch small),
+.workspace :global(.account small) {
+  font-size: 11px;
+}
+.workspace :global(.nav-item) {
+  color: #536458;
+  min-height: 46px;
+}
+.workspace :global(.nav-item.active) {
+  background: #e9f0e2;
+  color: #265f45;
+  font-weight: 650;
+}
+.workspace :global(main) {
+  padding-bottom: 24px;
+}
+.workspace :global(.topbar) {
+  background: #fff;
+  height: auto;
+  min-height: 64px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-block: 8px;
+}
+.workspace :global(.topbar-actions) {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+.workspace :global(.breadcrumb),
+.workspace :global(.reset-demo),
+.workspace :global(.live-auth-link) {
+  font-size: 12px;
+  color: #526a54;
+}
+.workspace :global(.reset-demo) {
+  min-height: 44px;
+}
+.workspace :global(.page-heading p) {
+  color: #607064;
+  font-size: 14px;
+}
+.workspace :global(.demo-notice) {
+  color: #61715b;
+  font-size: 12px;
+}
+.workspace :global(.job-strip) {
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+.workspace :global(.job-strip-title h2) {
+  font-size: 18px;
+}
+.workspace :global(.job-strip-title p) {
+  color: #5c6b5a;
+  font-size: 13px;
+}
+.workspace :global(.job-strip-title > span) {
+  color: #5d7152;
+  font-size: 10px;
+}
+.workspace :global(.job-status) {
+  color: #3f6441;
+  font-size: 12px;
+}
+.workspace :global(.section-bar h2) {
+  font-size: 16px;
+}
+.workspace :global(.filter-label) {
+  color: #50634e;
+  font-size: 12px;
+  min-height: 44px;
+}
+.workspace :global(.filter-label input) {
+  width: 18px;
+  height: 18px;
+}
+.workspace :global(.review-progress) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -6px 0 18px;
+  color: #5d6e60;
+  font-size: 12px;
+}
+.workspace :global(.review-progress progress) {
+  flex-shrink: 0;
+  width: 84px;
+  height: 5px;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #e1e7dc;
+  accent-color: #265f45;
+}
+
+@media (min-width: 701px) {
+  .workspace :global(main) {
+    padding-top: 28px;
+  }
+  .workspace :global(.page-heading) {
+    margin-bottom: 16px;
+  }
+  .workspace :global(.job-strip) {
+    padding-block: 16px;
+  }
+}
+@media (min-width: 701px) and (max-height: 800px) {
+  .workspace :global(.sidebar) {
+    padding-block: 20px;
+    overflow-y: auto;
+  }
+  .workspace :global(.brand) {
+    margin-bottom: 24px;
+  }
+  .workspace :global(.company-switch) {
+    margin-bottom: 18px;
+  }
+  .workspace :global(.sidebar-bottom) {
+    padding-top: 20px;
+  }
+  .workspace :global(.fairness-note) {
+    padding-top: 14px;
+  }
+}
+.workspace :global(progress::-webkit-progress-bar) {
+  background: #e1e7dc;
+}
+.workspace :global(progress::-webkit-progress-value) {
+  background: #265f45;
+}
+.workspace :global(.insights) {
+  padding-top: 0;
+}
+.workspace :global(.next-step-card) {
+  border: 1px solid #dbe4d1;
+  border-radius: 14px;
+  background: #eaf0e2;
+  padding: 24px;
+}
+.workspace :global(.next-step-card h2) {
+  font-size: 25px;
+  line-height: 1.3;
+  margin: 14px 0 12px;
+  letter-spacing: -0.7px;
+}
+.workspace :global(.next-step-card p) {
+  color: #52644b;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.workspace :global(.next-step-card .button) {
+  width: 100%;
+  font-size: 13px;
+}
+.workspace :global(.how-card) {
+  padding: 22px 22px 0;
+  background: transparent;
+  border: 0;
+}
+.workspace :global(.how-card h2) {
+  font-size: 20px;
+  margin-bottom: 18px;
+}
+.workspace :global(.steps p),
+.workspace :global(.steps strong) {
+  font-size: 12px;
+  color: #5b6d51;
+}
+.workspace :global(.steps p) {
+  margin-bottom: 16px;
+}
+.workspace :global(.how-footer) {
+  color: #5d7052;
+  font-size: 11px;
+}
+.workspace :global(.activity-card) {
+  margin-top: 16px;
+  border-radius: 14px;
+}
+.workspace :global(.activity-card h3) {
+  font-size: 13px;
+}
+.workspace :global(.activity-card .section-bar > span) {
+  font-size: 9px;
+  color: #627254;
+}
+.workspace :global(.stat-row) {
+  font-size: 12px;
+  color: #5d6d54;
+}
+.workspace :global(.privacy-footnote),
+.workspace :global(.fairness-note p),
+.workspace :global(.keyboard-hint) {
+  color: #617258;
+}
+
+@media (max-width: 1000px) and (min-width: 701px) {
+  .workspace :global(.insights) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .workspace :global(.how-card) {
+    grid-row: span 2;
+  }
+  .workspace :global(.activity-card) {
+    margin-top: 0;
+  }
+}
+@media (max-width: 700px) {
+  .workspace :global(.page-heading) {
+    flex-wrap: wrap;
+  }
+  .workspace :global(.new-job) {
+    width: auto;
+    font-size: 12px;
+    padding: 0 12px;
+    margin: 0;
+  }
+  .workspace :global(.job-strip) {
+    flex-wrap: wrap;
+  }
+  .workspace :global(.job-strip-title) {
+    flex: 1;
+    min-width: 0;
+  }
+  .workspace :global(.job-status) {
+    margin-left: 0;
+  }
+  .workspace :global(.section-bar) {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .workspace :global(.review-progress) {
+    font-size: 11px;
+    gap: 8px;
+  }
+  .workspace :global(.insights) {
+    grid-template-columns: 1fr;
+  }
+  .workspace :global(.how-card) {
+    order: 3;
+  }
+  .workspace :global(.privacy-footnote) {
+    order: 4;
+  }
+  .workspace :global(.next-step-card) {
+    padding: 22px;
+  }
+}
+
+.workspace :global(.workspace-options > summary),
+.workspace :global(.demo-notice-compact) {
+  display: none;
+}
+.workspace :global(.workspace-options-content) {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (max-width: 700px) {
+  .workspace :global(.sidebar) {
+    padding: 8px 16px;
+    min-height: 60px;
+  }
+  .workspace :global(.brand) {
+    margin: 0;
+    width: max-content;
+  }
+  .workspace :global(.sidebar nav) {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
+    background: #fff;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 20px #20342b08;
+  }
+  .workspace :global(.nav-item) {
+    min-height: 52px;
+  }
+  .workspace :global(.topbar) {
+    position: absolute;
+    top: 0;
+    right: 8px;
+    z-index: 40;
+    border: 0;
+    background: transparent;
+    min-height: 60px;
+    padding: 4px 8px;
+  }
+  .workspace :global(.topbar-actions) {
+    gap: 8px;
+  }
+  .workspace :global(.demo-badge) {
+    display: none;
+  }
+  .workspace :global(.workspace-options > summary) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 80px;
+    min-height: 44px;
+    font-size: 12px;
+    color: #526a54;
+    cursor: pointer;
+    list-style: none;
+    border-radius: 8px;
+  }
+  .workspace :global(.workspace-options > summary::-webkit-details-marker) {
+    display: none;
+  }
+  .workspace :global(.workspace-options-content) {
+    position: absolute;
+    top: 56px;
+    right: 8px;
+    min-width: 220px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    border: 1px solid var(--line);
+    background: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px #20342b1a;
+  }
+  .workspace :global(.workspace-options-content .reset-demo) {
+    text-align: left;
+  }
+  .workspace :global(main) {
+    padding: 8px 12px calc(90px + env(safe-area-inset-bottom));
+  }
+  .workspace[data-view='discover'] :global(.page-heading) {
+    margin: 0 4px 6px;
+  }
+  .workspace[data-view='discover'] :global(.page-heading h1) {
+    font-size: 18px;
+    letter-spacing: -0.4px;
+    margin-bottom: 0;
+    max-width: none;
+  }
+  .workspace[data-view='discover'] :global(.page-heading .eyebrow),
+  .workspace[data-view='discover'] :global(.page-heading p),
+  .workspace[data-view='discover'] :global(.new-job),
+  .workspace[data-view='discover'] :global(.demo-notice-full),
+  .workspace[data-view='discover'] :global(.job-strip-icon),
+  .workspace[data-view='discover'] :global(.job-strip-title > span),
+  .workspace[data-view='discover'] :global(.job-status),
+  .workspace[data-view='discover'] :global(.section-bar h2),
+  .workspace[data-view='discover'] :global(.insights),
+  .workspace[data-view='discover'] :global(.page-footer),
+  .workspace[data-view='discover'] :global(.keyboard-hint) {
+    display: none;
+  }
+  .workspace[data-view='discover'] :global(.demo-notice-compact) {
+    display: inline;
+  }
+  .workspace[data-view='discover'] :global(.demo-notice) {
+    margin: 0 4px 10px;
+    font-size: 11px;
+  }
+  .workspace[data-view='discover'] :global(.job-strip) {
+    margin-bottom: 4px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .workspace[data-view='discover'] :global(.job-strip-title h2) {
+    font-size: 15px;
+    margin: 0 0 3px;
+  }
+  .workspace[data-view='discover'] :global(.section-bar) {
+    justify-content: flex-end;
+    margin-bottom: 0;
+  }
+  .workspace[data-view='discover'] :global(.filter-label) {
+    min-height: 44px;
+  }
+  .workspace[data-view='discover'] :global(.review-progress) {
+    margin: -32px 4px 14px;
+    padding-right: 130px;
+    min-height: 22px;
+  }
+  .workspace[data-view='discover'] :global(.review-progress progress) {
+    display: none;
+  }
+  .workspace[data-view='discover'] :global(.deck-card) {
+    min-height: 440px;
+  }
+  .workspace[data-view='discover'] :global(.round-actions) {
+    margin-top: 18px;
+    gap: 24px;
+  }
+  .workspace[data-view='discover'] :global(.round-button.big) {
+    width: 60px;
+    height: 60px;
+    font-size: 26px;
+  }
+  .workspace[data-view='discover'] :global(.round-button) {
+    width: 48px;
+    height: 48px;
+  }
+  .workspace[data-view='discover'] :global(.touch-hint) {
+    margin-top: 8px;
+    font-size: 11px;
+  }
+  .workspace :global(.notice) {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .workspace[data-view='discover'] :global(.deck-card) {
+    min-height: 430px;
+  }
+}

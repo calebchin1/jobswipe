@@ -1,0 +1,34 @@
+-- Public education and availability must come from the candidate-approved snapshot.
+begin;
+set role anon;
+select test.denied('select * from app.list_candidate_cards(''30000000-0000-0000-0000-000000000002'')','anonymous cannot browse new public fields');
+reset role;
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000060';
+select app.ensure_account('candidate');
+select app.attest_candidate_eligibility(true,true,'adult-pilot-v1');
+select app.save_candidate_profile('{"headline":"Peer tutor for 12 students","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","school":"Example University","hoursPerWeek":18,"bullets":["Tutored 12 students"],"skills":["Math"]}',true);
+select test.invalid('select app.save_candidate_profile(''{"headline":"Tutor","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","school":"","hoursPerWeek":18,"bullets":[],"skills":["Math"]}'')','empty school rejected');
+select test.invalid('select app.save_candidate_profile(''{"headline":"Tutor","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","hoursPerWeek":1.5,"bullets":[],"skills":["Math"]}'')','fractional hours rejected');
+select test.invalid('select app.save_candidate_profile(''{"headline":"Tutor","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","hoursPerWeek":61,"bullets":[],"skills":["Math"]}'')','out of range hours rejected');
+reset role;
+set session authorization swipe_test_operator;
+set role swipe_reviewer;
+select review.propose_candidate_profile('00000000-0000-0000-0000-000000000060',1,'{"headline":"Peer tutor for 12 students","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","school":"Example University","hoursPerWeek":18,"bullets":["Tutored 12 students"],"skills":["Math"]}','Synthetic education and availability review')->>'id' as education_proposal \gset
+reset role;
+reset session authorization;
+set role authenticated;
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select test.assert(not exists(select 1 from app.list_candidate_cards('30000000-0000-0000-0000-000000000002') where school='Example University'),'proposal alone is not public');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000060';
+select test.assert(app.approve_profile_proposal(:'education_proposal')->'published'->>'school'='Example University','candidate sees approved school');
+select test.assert((app.get_candidate_profile()->'published'->>'hoursPerWeek')::integer=18,'candidate sees approved hours');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select test.assert(exists(select 1 from app.list_candidate_cards('30000000-0000-0000-0000-000000000002') where school='Example University' and hours_per_week=18),'employer receives approved school and hours');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000060';
+select app.save_candidate_profile('{"headline":"Peer tutor for 12 students","educationLevel":"Bachelor","field":"Math","studyStatus":"Year 2","school":"Unapproved School","hoursPerWeek":30,"bullets":[],"skills":["Math"]}');
+set request.jwt.claim.sub='00000000-0000-0000-0000-000000000004';
+select test.assert(not exists(select 1 from app.list_candidate_cards('30000000-0000-0000-0000-000000000002') where school='Unapproved School' or hours_per_week=30),'draft changes cannot leak to employers');
+select test.assert(exists(select 1 from app.list_candidate_cards('30000000-0000-0000-0000-000000000002') where school='Example University' and hours_per_week=18),'published values remain frozen');
+reset role;
+rollback;

@@ -8,6 +8,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "review": "node --env-file-if-exists=.env.review scripts/review-console.mjs",
     "dev": "node scripts/run.mjs web dev",
     "dev:mobile": "node scripts/run.mjs mobile start",
     "build": "node scripts/run.mjs web build",

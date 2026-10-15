@@ -13,7 +13,7 @@ import {
 } from '@swipe/contracts';
 import { liveRequest, useLiveAuth } from '../src/live/auth';
 import { LiveScreen, Status } from '../src/live/ui';
-import { Button, Empty, Heading, s, Tag } from '../src/ui';
+import { Button, colors, Empty, Heading, s, Tag } from '../src/ui';
 import { DeckButtons, DeckStack, MatchOverlay, type DeckCardContent } from '../src/Deck';
 import { useRouter } from 'expo-router';
 export default function Live() {
@@ -372,23 +372,25 @@ export default function Live() {
                   actions={[
                     {
                       label: 'Undo last pass',
+                      caption: 'Undo',
                       glyph: '↶',
-                      color: '#B8901C',
+                      color: colors.gold,
                       disabled: busy || !passed.length,
                       onPress: () => void undoPass(),
                     },
                     {
                       label: 'Pass',
                       glyph: '✕',
-                      color: '#D2584A',
+                      color: colors.red,
                       big: true,
                       disabled: busy,
                       onPress: () => void pass(job),
                     },
                     {
                       label: canApply ? 'Apply to this job' : 'Application checks pending',
+                      caption: canApply ? 'Apply' : 'Pending',
                       glyph: '✓',
-                      color: '#2E8B57',
+                      color: colors.green,
                       big: true,
                       disabled: busy || !canApply,
                       onPress: () => void apply(job),

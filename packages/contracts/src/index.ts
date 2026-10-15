@@ -60,7 +60,14 @@ export const BlindCandidateSchema = z
     id: z.string(), // Synthetic demo identifier; production uses job-scoped card refs.
     handle: z.string(),
     headline: z.string().max(60),
-    education: z.object({ level: z.string(), field: z.string(), status: z.string() }).strict(),
+    education: z
+      .object({
+        level: z.string(),
+        field: z.string(),
+        status: z.string(),
+        school: z.string().optional(),
+      })
+      .strict(),
     bullets: z.array(z.string().max(140)).max(3),
     skills: z.array(z.string()).max(8),
     availability: z
@@ -149,3 +156,4 @@ export type DemoIdentity = {
   resumeSummary: string;
 };
 export * from './calls';
+export * from './eligibility';

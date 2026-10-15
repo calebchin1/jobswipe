@@ -4,6 +4,8 @@ September 29, 2026. This is a connected development build, not a production-comp
 
 ## Implemented
 
+October 14, 2026 additions: private adults-only pilot declarations, expiry/removal gates, the authenticated candidate form, and a local operator review console reusing scoped database permissions. Migration 007 is installed on existing staging. Local provider credentials and both scoped review queues are verified. Matching Vercel code deployments, hosted LiveKit environment settings and two-party microphone verification remain outstanding. See [setup and handoff](13-backend-setup.md).
+
 - Pinned TypeScript monorepo: Next.js employer app, Expo candidate app, shared contracts/domain/server packages, automated checks and CI configuration.
 - Separate synthetic walkthroughs for exploring swipes, a simulated interview, scorecard locking and candidate-controlled reveal without credentials.
 - Web signup/sign-in/confirmation/sign-out using Supabase Auth, HttpOnly cookies, same-origin mutation checks and verified caller-token RPC forwarding.
@@ -61,3 +63,26 @@ Do not run two web production builds concurrently: they share `.next`. Exported 
 6. Privacy export/deletion, operational retention, recovery drills, accessibility accommodations, provider staging verification and native device/store releases.
 
 Product/legal questions remain in [scope](01-product-scope.md). No safety or compliance conclusion follows from passing software tests. Setup is in [connected development](11-connected-development.md).
+
+### October 15 candidate card revision
+
+Discovery starts with the selected role and candidate deck; the promotional intro is removed. Cards show an achievement-led headline, school + degree, hours/week, up to three skills and three experiences. The expanded profile fills the card, hides the scrollbar while preserving scrolling, and returns through browser back, a right swipe, Escape/left arrow, or a bottom left-arrow button. Mobile summaries shorten long text; the expanded profile keeps full experience text.
+
+Migration `202610150008_candidate_card_education.sql` adds optional school and weekly availability to reviewed profile snapshots. These fields require a new reviewed proposal and candidate approval; old snapshots remain unchanged. School remains excluded from ranking.
+
+Migration 008 was installed transactionally on the configured Supabase staging project on October 15. The hosted web/mobile builds have not been redeployed; localhost includes the new UI.
+
+### October 15 backend completion audit
+
+The backend is not complete for real-user launch. A fresh code audit, automated runs and read-only staging checks confirmed:
+
+- `npm run check`: all TypeScript checks and 92 unit tests passed. `npm run test:db`: authorization, concurrency, review, eligibility, scheduling, audio entitlements and candidate-approved education assertions passed. `npm run test:connected`: all six browser workflows plus connected review/API assertions passed against an isolated local database and test auth adapter.
+- Supabase staging has adult-pilot eligibility and school/hours fields. Anonymous candidate browsing and authenticated direct reads of private identity/attestation tables remain denied.
+- Local `/api/v1/candidate/eligibility` returns the expected anonymous 401; the hosted employer API returns 404 for the same endpoint. The new API build is not deployed there.
+- Supabase Auth accepts email signup and requires confirmation. This settings check does not prove SMTP configuration or delivery; no email was sent during the audit.
+- LiveKit credentials passed an authenticated room-service request. No two-party audio/device test was performed. Provider attendance/completion ingestion and participant confirmations are missing, so real interviews cannot yet unlock the complete scorecard/reveal flow.
+- Staging contains four pending outbox intents and zero marked dispatched. No application delivery worker, leasing/retry mechanism, notification provider integration or reliable deferred room-closure consumer exists in this repository.
+- Staging has zero Storage buckets. Resume upload, quarantine/scanning, regeneration, protected file downloads and delivery are unfinished; document IDs in fixtures do not imply stored files.
+- Team invitations, masked chat, moderation/report workflows, privacy export/deletion and operational recovery remain unfinished. The local operator review console and private adult self-attestation are already built; older remaining-work lists must not be read as saying those features are absent.
+
+Next order: deploy matching API/candidate builds, verify authentication email delivery, implement durable background delivery, complete real audio attendance and interview confirmation, then finish approved resume/reveal delivery. No deployment, email, call or account mutation was performed by this audit.

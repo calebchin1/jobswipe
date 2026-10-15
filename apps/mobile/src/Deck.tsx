@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SwipeCard, type SwipeDirection } from './SwipeCard';
+import { colors } from './ui';
 
 /** Deep tones so white type passes contrast; picked per card from its id. */
 const tones = ['#295C46', '#33566B', '#5E4A3A', '#45507A', '#6E4552', '#2E6463'];
@@ -40,7 +41,7 @@ const fadeSteps = Array.from(
 export function useCardHeight() {
   const { height } = useWindowDimensions();
   // Leave room for the header, action buttons and tab bar so the whole deck fits on screen.
-  return Math.round(Math.min(600, Math.max(340, height - 300)));
+  return Math.round(Math.min(560, Math.max(280, height - 340)));
 }
 
 /** Tinder-style full-bleed card: colour field, big monogram, title block over a bottom fade. */
@@ -58,7 +59,9 @@ export function DeckCard({ card, height }: { card: DeckCardContent; height: numb
       </View>
       <View style={styles.bottom}>
         <View style={{ flex: 1, gap: 6 }}>
-          <Text style={styles.title}>{card.title}</Text>
+          <Text accessibilityRole="header" style={styles.title}>
+            {card.title}
+          </Text>
           <Text style={styles.subtitle}>{card.subtitle}</Text>
           <Text style={styles.highlight}>{card.highlight}</Text>
           <View style={styles.chips}>
@@ -115,6 +118,7 @@ export function DeckStack({
           style={styles.peek}
           pointerEvents="none"
           importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
         >
           <DeckCard card={next} height={height} />
         </View>
@@ -135,6 +139,7 @@ export function DeckStack({
 
 type RoundAction = {
   label: string;
+  caption?: string;
   glyph: string;
   color: string;
   onPress: () => void;
@@ -146,28 +151,36 @@ export function DeckButtons({ actions }: { actions: RoundAction[] }) {
   return (
     <View style={styles.actions}>
       {actions.map((action) => {
-        const size = action.big ? 68 : 52;
+        const size = action.big ? 64 : 48;
         return (
-          <Pressable
-            key={action.label}
-            accessibilityRole="button"
-            accessibilityLabel={action.label}
-            accessibilityState={{ disabled: !!action.disabled }}
-            disabled={action.disabled}
-            onPress={action.onPress}
-            style={({ pressed }) => [
-              styles.round,
-              { width: size, height: size, borderRadius: size / 2 },
-              action.disabled && { opacity: 0.35 },
-              pressed && { transform: [{ scale: 0.92 }] },
-            ]}
-          >
-            <Text
-              style={{ fontSize: action.big ? 30 : 22, color: action.color, fontWeight: '700' }}
+          <View key={action.label} style={[styles.actionSlot, { width: size }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              accessibilityState={{ disabled: !!action.disabled }}
+              disabled={action.disabled}
+              onPress={action.onPress}
+              style={({ pressed }) => [
+                styles.round,
+                { width: size, height: size, borderRadius: size / 2 },
+                action.disabled && { opacity: 0.35 },
+                pressed && { transform: [{ scale: 0.92 }] },
+              ]}
             >
-              {action.glyph}
+              <Text
+                style={{ fontSize: action.big ? 30 : 22, color: action.color, fontWeight: '700' }}
+              >
+                {action.glyph}
+              </Text>
+            </Pressable>
+            <Text
+              style={styles.actionCaption}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            >
+              {action.caption ?? action.label}
             </Text>
-          </Pressable>
+          </View>
         );
       })}
     </View>
@@ -214,7 +227,7 @@ export function MatchOverlay({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
     justifyContent: 'flex-end',
     shadowColor: '#1B2A22',
@@ -248,9 +261,9 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600' },
   note: { fontSize: 12, lineHeight: 17, color: '#FFFFFFD0', marginTop: 4 },
   info: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -274,13 +287,27 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
     opacity: 0.85,
   },
-  actions: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 18 },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  actionSlot: { alignItems: 'center', gap: 8 },
+  actionCaption: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+    color: colors.ink,
+    textAlign: 'center',
+  },
   round: {
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#1B2A22',
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,

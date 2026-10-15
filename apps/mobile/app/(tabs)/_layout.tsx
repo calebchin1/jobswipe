@@ -1,15 +1,16 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
+import { colors } from '../../src/ui';
 const icons: Record<string, string> = { index: '◈', saved: '♡', applications: '▤', profile: '◎' };
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#295C46',
-        tabBarInactiveTintColor: '#748075',
-        tabBarStyle: { backgroundColor: '#F7F8F2', borderTopColor: '#DDE3D7' },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarActiveTintColor: colors.green,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: { backgroundColor: colors.paper, borderTopColor: colors.line },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         tabBarIcon: ({ color }) => <Text style={{ fontSize: 24, color }}>{icons[route.name]}</Text>,
       })}
     >

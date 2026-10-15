@@ -23,10 +23,10 @@ Enable a candidate and employer to move from mutual interest to a structured fir
 | D02 | Backend | Supabase Auth/Postgres/Storage/Realtime; Next.js API | Required |
 | D03 | Shared code | TypeScript, pnpm, Turborepo, Zod contracts | Required |
 | D04 | Scope | Waterloo first, GTA supported in the model | Original regional scope retained; staged rollout proposed |
-| D05 | Ages | Product supports minors; production collection method unresolved | No silent switch to an 18+ product; adult-only pilot is an option awaiting decision |
+| D05 | Ages | Adult-only first pilot selected by the user on October 13, 2026 | 18+ private self-attestation implemented under `adult-pilot-v1`; support for minors remains a later phase requiring its own collection design |
 | D06 | Interview | LiveKit audio round one, no recording; optional round-two video later | Required |
 | D07 | Reveal consent | Per-application authorization covering recipient and document version | Proposed explicit confirmation after interview; legal review before launch |
-| D08 | School disclosure | Original plan reveals school after interview | Unresolved legal/product question; implement separately controllable field projection |
+| D08 | School disclosure | User requested school + degree on discovery cards on October 15, 2026 | Optional school and hours are part of the reviewed, candidate-approved public profile. Existing versions remain unchanged; school is excluded from ranking. |
 | D09 | Resume delivery | Email with PDF attachment plus authenticated dashboard link | Original requirement retained; secure-link-only beta proposed, not assumed accepted |
 | D10 | Resume processing | Structured regeneration, candidate approval | Required; manual review permitted for beta |
 | D11 | Background execution | Inngest orchestration with transactional database outbox | Proposed selection over Trigger.dev; verify runtime fit in a small spike |
@@ -71,7 +71,6 @@ A flag may select a legally reviewed policy, but must never create a bypass arou
 
 ## Behaviour to settle before implementation reaches it
 
-- Are school names held until an offer, or shared at the first reveal? This affects resume generation as well as JSON fields.
 - Does a candidate authorize automatic future reveal in advance, or confirm it after the interview? Blueprint defaults to the latter.
 - Are attachments mandatory in beta? Their irreversibility must be accepted in the sharing screen.
 - Which age evidence is collected, and what is the reviewed policy for minors? Age bands require an update mechanism; they do not age automatically.

@@ -11,6 +11,7 @@ import {
 import { liveRequest, useLiveAuth } from '../src/live/auth';
 import { LiveScreen, Status } from '../src/live/ui';
 import { Button, Heading, s } from '../src/ui';
+import { EligibilityForm } from '../src/live/EligibilityForm';
 const empty: ProfileDraft = {
   headline: '',
   educationLevel: '',
@@ -32,6 +33,10 @@ function ProfileVersion({ title, content }: { title: string; content: ProfileDra
           • {bullet}
         </Text>
       ))}
+      {content.school && <Text style={s.body}>School: {content.school}</Text>}
+      {content.hoursPerWeek != null && (
+        <Text style={s.body}>Available: {content.hoursPerWeek} hours / week</Text>
+      )}
       <Text style={s.body}>Skills: {content.skills.join(', ')}</Text>
     </View>
   );
@@ -227,9 +232,10 @@ export default function LiveProfile() {
       <Heading
         eyebrow="LIVE BLIND PROFILE"
         title="Lead with your strengths."
-        subtitle="Leave your name, contact details, school name and date of birth out of this profile."
+        subtitle="Share your education and experience. Keep your name, contact details and date of birth out of this profile."
       />
       {!!error && <Status error message={error} />} {!!notice && <Status message={notice} />}{' '}
+      <EligibilityForm />
       {owner !== user && !error && <Status message="Loading profile…" />}
       {owner === user && profile && (
         <>
@@ -276,30 +282,61 @@ export default function LiveProfile() {
               New and edited drafts require manual review. An approved published version stays
               separate from this draft. Eligibility is checked separately by the server.
             </Text>
-            {(['headline', 'educationLevel', 'field', 'studyStatus'] as const).map((field) => (
-              <View key={field} style={{ gap: 8 }}>
-                <Text style={s.label}>
-                  {
+            {(['headline', 'school', 'educationLevel', 'field', 'studyStatus'] as const).map(
+              (field) => (
+                <View key={field} style={{ gap: 8 }}>
+                  <Text style={s.label}>
                     {
-                      headline: 'Headline',
-                      educationLevel: 'Education level (no school name)',
-                      field: 'Field of study',
-                      studyStatus: 'Study status',
-                    }[field]
-                  }
-                </Text>
-                <TextInput
-                  accessibilityLabel={field}
-                  value={draft[field]}
-                  editable={!busy}
-                  maxLength={field === 'headline' ? 60 : field === 'studyStatus' ? 40 : 80}
-                  onChangeText={(value) =>
-                    setDraft((previous) => ({ ...previous, [field]: value }))
-                  }
-                  style={s.input}
-                />
-              </View>
-            ))}
+                      {
+                        headline: 'Headline — your experience and achievements',
+                        school: 'University / college (optional, shown to employers)',
+                        educationLevel: 'Degree / education level',
+                        field: 'Field of study',
+                        studyStatus: 'Study status',
+                      }[field]
+                    }
+                  </Text>
+                  <TextInput
+                    accessibilityLabel={field}
+                    value={draft[field] ?? ''}
+                    editable={!busy}
+                    maxLength={
+                      field === 'school'
+                        ? 120
+                        : field === 'headline'
+                          ? 60
+                          : field === 'studyStatus'
+                            ? 40
+                            : 80
+                    }
+                    onChangeText={(value) =>
+                      setDraft((previous) => ({
+                        ...previous,
+                        [field]: field === 'school' && !value.trim() ? undefined : value,
+                      }))
+                    }
+                    style={s.input}
+                  />
+                </View>
+              ),
+            )}
+            <Text style={s.label}>Available hours per week (optional, shown to employers)</Text>
+            <TextInput
+              accessibilityLabel="Available hours per week"
+              keyboardType="number-pad"
+              value={draft.hoursPerWeek == null ? '' : String(draft.hoursPerWeek)}
+              editable={!busy}
+              maxLength={2}
+              onChangeText={(value) => {
+                if (/^\d{0,2}$/.test(value))
+                  setDraft((previous) => ({
+                    ...previous,
+                    hoursPerWeek: value === '' ? undefined : Number(value),
+                  }));
+              }}
+              style={s.input}
+            />
+            <Text style={s.body}>Your first three skills appear on your employer card.</Text>
             <Text style={s.label}>Skills (up to 8, separated by commas)</Text>
             <TextInput
               accessibilityLabel="Profile skills"
@@ -345,6 +382,12 @@ export default function LiveProfile() {
                 {profile.published.educationLevel} · {profile.published.field} ·{' '}
                 {profile.published.studyStatus}
               </Text>
+              {profile.published.school && (
+                <Text style={s.body}>School: {profile.published.school}</Text>
+              )}
+              {profile.published.hoursPerWeek != null && (
+                <Text style={s.body}>Available: {profile.published.hoursPerWeek} hours / week</Text>
+              )}
               {profile.published.bullets.map((bullet, index) => (
                 <Text key={index} style={s.body}>
                   • {bullet}

@@ -190,6 +190,25 @@ for (const width of [320, 390]) {
       }
     });
 
+    test('discovery opens with the card and decisions above bottom navigation', async ({
+      page,
+    }) => {
+      await page.goto('/');
+      await expect(page.locator('[data-ready="true"]')).toBeVisible();
+      const card = await page.locator('.deck-stack > .swipe-card').boundingBox();
+      const actions = await page.locator('.round-actions').boundingBox();
+      const navigation = await page.locator('.sidebar nav').boundingBox();
+      expect(card!.y).toBeLessThan(280);
+      expect(actions!.y + actions!.height).toBeLessThanOrEqual(navigation!.y);
+      await page.screenshot({ path: test.info().outputPath('mobile-discovery.png') });
+      await page.getByRole('button', { name: 'See profile details' }).click();
+      await expect(
+        page
+          .getByRole('region', { name: 'Candidate A7F2 profile' })
+          .getByRole('heading', { name: 'Past experience' }),
+      ).toBeVisible();
+    });
+
     test('every workspace tab meets touch floors', async ({ page }) => {
       await installWorkspace(page);
       await page.goto('/workspace');

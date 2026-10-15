@@ -114,6 +114,8 @@ describe('allowlisted response projections', () => {
         education_level: 'Diploma',
         field: 'Business',
         study_status: 'Year 1',
+        school: 'Example University',
+        hours_per_week: 18,
         bullets: [],
         skills: [],
         applied: true,
@@ -127,7 +129,13 @@ describe('allowlisted response projections', () => {
         cardRef: objectId,
         handle: 'Candidate X',
         headline: 'Helpful teammate',
-        education: { level: 'Diploma', field: 'Business', status: 'Year 1' },
+        education: {
+          level: 'Diploma',
+          field: 'Business',
+          status: 'Year 1',
+          school: 'Example University',
+        },
+        hoursPerWeek: 18,
         bullets: [],
         skills: [],
         applied: true,
@@ -158,7 +166,12 @@ describe('allowlisted response projections', () => {
       'unexpected',
     );
     expect(projectRpcResult(workflows.employerInterest, null)).toBeNull();
-    for (const pass of [workflows.passJob, workflows.undoJobPass, workflows.passCard, workflows.undoCardPass])
+    for (const pass of [
+      workflows.passJob,
+      workflows.undoJobPass,
+      workflows.passCard,
+      workflows.undoCardPass,
+    ])
       expect(projectRpcResult(pass, { candidate_id: userId })).toBeNull();
   });
 });
